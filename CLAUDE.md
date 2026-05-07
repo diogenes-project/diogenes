@@ -148,7 +148,7 @@ git config core.hooksPath .githooks   # Enable the pre-commit gate
 uv sync --group dev                   # Install runtime + dev deps
 ```
 
-Inside the dev container, `st-validate-local` is provided by the Docker
+Inside the dev container, `st-validate` is provided by the Docker
 image. Host commands (`st-commit`, `st-submit-pr`, etc.) come from the
 `uv tool install` above.
 
@@ -157,23 +157,24 @@ image. Host commands (`st-commit`, `st-submit-pr`, etc.) come from the
 Testing is split across two tiers with increasing scope and cost:
 
 **Tier 1 — Local pre-commit (seconds):** The single entry point
-`st-docker-run -- uv run st-validate-local` runs everything (lint,
+`st-docker-run -- uv run st-validate` runs everything (lint,
 typecheck, tests, audit, custom checks) inside one dev container.
 Enforced via the `.githooks` pre-commit gate on every commit.
 
 ```bash
-st-docker-run -- uv run st-validate-local
+st-docker-run -- uv run st-validate
 ```
 
-Repo-specific customization (the 100% coverage threshold, license
-allowlist, version validation) lives in `scripts/dev/*.sh`, which
-`st-validate-local` invokes from inside the container.
+`st-validate` reads `primary_language` from `standard-tooling.toml` and
+runs checks from its built-in command registry. Repo-specific custom
+validation (version checks) lives in `scripts/bin/validate-custom`,
+which `st-validate` discovers and runs automatically.
 
 **Tier 2 — PR CI (~8-10 min):** Triggers on `pull_request`. Full Python
 matrix (3.12, 3.13, 3.14), security scanners (CodeQL, Trivy, Semgrep),
 standards compliance, and release gates.
 
-Push-CI was retired once `st-validate-local` reached parity with PR-CI.
+Push-CI was retired once `st-validate` reached parity with PR-CI.
 See wphillipmoore/standard-actions#176 for the parity audit and rationale.
 
 ### Testing

@@ -3,34 +3,26 @@
 ## Canonical local validation command
 
 ```bash
-st-validate-local
+st-docker-run -- uv run st-validate
 ```
 
-This runs all Tier 1 validation checks: lint, format, type check, tests,
-and repo-specific custom validation. Requires standard-tooling on PATH.
+This runs all Tier 1 validation checks inside one dev container:
+common checks (markdownlint, shellcheck, yamllint), then
+language-specific checks (lint, typecheck, test, audit) from the
+built-in command registry, then repo-specific custom validation
+(`scripts/bin/validate-custom`).
 
-The dev scripts (`scripts/dev/lint.sh`, `typecheck.sh`, `test.sh`,
-`audit.sh`) run **on the host** via `uv run` by default, so failures
-surface without needing Docker. This is the intentional local-validation
-contract: anything CI rejects must be rejected locally.
+Anything CI rejects must be rejected locally.
 
-For CI parity (to reproduce a container-only failure), opt in with:
+## What st-validate runs (must match CI)
 
-```bash
-USE_DOCKER=1 scripts/dev/lint.sh
-```
-
-This requires `st-docker-test` on PATH and the Docker daemon running.
-
-## What each script runs (must match CI)
-
-- `lint.sh` runs `uv run ruff check` and `uv run ruff format --check .`
-  (matches CI unit-tests: Run ruff check + Run ruff format check).
-- `typecheck.sh` runs `uv run mypy src tests` (matches CI type-check).
-- `test.sh` runs `uv run pytest --cov=diogenes --cov-branch
-  --cov-fail-under=100` (matches CI unit-tests: Run tests with coverage).
-- `audit.sh` runs `uv lock --check`, `uv run pip-audit`, and
-  `uv run pip-licenses` (matches CI dependency-audit).
+- **Common:** markdownlint, shellcheck, yamllint
+- **Lint:** `ruff check src/ tests/`, `ruff format --check src/ tests/`
+- **Typecheck:** `mypy src/`, `ty check src tests`
+- **Test:** `pytest --cov=src --cov-branch --cov-fail-under=100`
+- **Audit:** `uv sync --check --frozen --group dev`, `uv lock --check`,
+  `pip-audit`, `pip-licenses` (centralized allowlist)
+- **Custom:** `scripts/bin/validate-custom` (version validation)
 
 ## Manual validation (without standard-tooling)
 

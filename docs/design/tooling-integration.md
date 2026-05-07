@@ -21,19 +21,16 @@ Clone from mq-rest-admin-python and adapt:
 | publish.yml | mq-rest-admin-python | Change package name, remove MQ-specific gates |
 | add-to-project.yml | mq-rest-admin-python | Update project ID |
 
-### 2. Dev scripts (scripts/dev/)
+### 2. Custom validation (scripts/)
 
-Clone the standard pattern:
+`st-validate` handles lint, typecheck, test, and audit via its built-in
+command registry. Repo-specific checks live in `scripts/`:
 
-| Script | Purpose |
-|--------|---------|
-| test.sh | pytest via st-docker-test |
-| lint.sh | ruff via st-docker-test |
-| typecheck.sh | mypy via st-docker-test |
-| audit.sh | pip-audit + pip-licenses via st-docker-test |
-| validate_local_custom.sh | Repo-specific validation |
-| validate_version.py | Semantic versioning policy |
-| validate_changelog.py | Changelog validation |
+| Path | Purpose |
+|------|---------|
+| scripts/bin/validate-custom | Entry point discovered by st-validate |
+| scripts/dev/validate_version.py | Semantic versioning policy |
+| scripts/dev/validate_changelog.py | Changelog validation |
 
 ### 3. Git hooks
 
@@ -77,8 +74,7 @@ Add:
 
 ### 7. License compliance
 
-Add:
-- .pip-licenses-allowlist
+Handled by `st-validate`'s centralized allowlist in the command registry.
 
 ### 8. uv lock file
 
