@@ -43,6 +43,10 @@ dependencies = [
     # PDFs; trafilatura only handles HTML. Without pypdf we drop PDF sources
     # entirely — a major coverage gap for peer-reviewed content.
     "pypdf",
+    # Pin python-multipart >= 0.0.27 for CVE-2026-42561 (DoS via unbounded
+    # multipart parsing). Transitive dep of mcp; safe to remove once mcp
+    # bumps its own floor.
+    "python-multipart>=0.0.27",
 ]
 
 [project.urls]
