@@ -29,8 +29,7 @@ command registry. Repo-specific checks live in `scripts/`:
 | Path | Purpose |
 |------|---------|
 | scripts/bin/validate-custom | Entry point discovered by st-validate |
-| scripts/dev/validate_version.py | Semantic versioning policy |
-| scripts/dev/validate_changelog.py | Changelog validation |
+| scripts/helpers/validate_version.py | Semantic versioning policy |
 
 ### 3. Git hooks
 
