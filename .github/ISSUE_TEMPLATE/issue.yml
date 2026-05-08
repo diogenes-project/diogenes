@@ -1,5 +1,5 @@
-# Canonical source: wphillipmoore/standard-tooling/.github/ISSUE_TEMPLATE/issue.yml
-# Do not modify repo-local copies — update the canonical source and re-sync.
+# Source: wphillipmoore/standard-tooling/.github/ISSUE_TEMPLATE/issue.yml
+# Do not modify repo-local copies — update the source and re-sync.
 #
 name: Issue
 description: Track work with explicit acceptance criteria.
