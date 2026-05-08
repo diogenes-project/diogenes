@@ -50,8 +50,8 @@ jobs:
     uses: wphillipmoore/standard-actions/.github/workflows/ci-security.yml@v1.5
     with:
       language: python
-      run-standards: ${{ inputs.run-release || true }}
-      run-security: ${{ inputs.run-security || true }}
+      run-standards: ${{ inputs.run-release != 'false' }}
+      run-security: ${{ inputs.run-security != 'false' }}
     permissions:
       contents: read
       security-events: write
