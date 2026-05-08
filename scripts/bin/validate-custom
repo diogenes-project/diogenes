@@ -26,4 +26,4 @@ fi
 
 # -- repo-specific checks ---------------------------------------------------
 
-python3 "$repo_root/scripts/dev/validate_version.py" --base-ref "$base_ref"
+python3 "$repo_root/scripts/helpers/validate_version.py" --base-ref "$base_ref"
