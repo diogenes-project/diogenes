@@ -1,9 +1,7 @@
 # Canonical yamllint config for this repo.
 #
-# Read by both `st-validate-local` (via the new yamllint check in
-# `validate_local_common_container.py`) and the plugin's
-# `validate-on-edit` hook (yamllint auto-discovers `.yamllint` in the
-# project root). Keeps both layers aligned. Issue #302.
+# Read by `st-validate` (yamllint is a common check in the built-in
+# registry). Issue #302.
 #
 # Tuned for GitHub Actions workflow files and project YAML (mkdocs,
 # markdownlint, issue templates). Stricter rules would flag
