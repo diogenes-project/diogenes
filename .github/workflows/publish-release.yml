@@ -1,0 +1,16 @@
+name: Publish release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  attestations: write
+  contents: write
+  id-token: write
+  pull-requests: write
+
+jobs:
+  publish:
+    uses: wphillipmoore/standard-actions/.github/workflows/publish-release.yml@v1.5
+    secrets: inherit
