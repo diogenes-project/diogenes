@@ -1,67 +1,32 @@
-# Source: wphillipmoore/standard-tooling/.github/ISSUE_TEMPLATE/issue.yml
-# Do not modify repo-local copies — update the source and re-sync.
-#
 name: Issue
 description: Track work with explicit acceptance criteria.
-title: "[Issue]: "
 body:
-  - type: markdown
-    attributes:
-      value: |
-        Use this form to capture the required issue details.
   - type: dropdown
     id: issue_type
     attributes:
       label: Issue type
-      description: Select the type that best describes this issue.
       options:
         - feature
         - bug
         - documentation
-        - style
         - refactor
-        - test
         - chore
-        - ci
-        - build
         - research
-        - rtfm
-        - observability
-    validations:
-      required: true
-  - type: textarea
-    id: summary
-    attributes:
-      label: Summary
-      description: Short, single-paragraph summary.
-      placeholder: What is the change or problem?
     validations:
       required: true
   - type: textarea
     id: problem
     attributes:
       label: Problem / Goal
-      description: What is broken or what outcome is needed?
+      description: What is broken, missing, or needed? Include context and motivation.
+      placeholder: Describe the problem or desired outcome.
     validations:
       required: true
-  - type: checkboxes
-    id: acceptance_obvious
-    attributes:
-      label: Acceptance criteria clarity
-      options:
-        - label: Criteria are obvious (docs-only or trivial change)
   - type: textarea
     id: acceptance
     attributes:
-      label: Acceptance criteria (if not obvious)
-      description: If criteria are obvious, write "Obvious" with a short note.
-      placeholder: List explicit criteria or success conditions.
-    validations:
-      required: true
-  - type: textarea
-    id: validation
-    attributes:
-      label: Validation / Evidence
-      description: How will completion be verified?
+      label: Acceptance criteria
+      description: What does "done" look like? One sentence is fine for trivial changes.
+      placeholder: List the conditions that must be true when this is complete.
     validations:
       required: true
