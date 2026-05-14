@@ -563,6 +563,15 @@ Your output MUST conform to this JSON Schema. This is the canonical specificatio
         "discovered_by_search": {
           "type": "string",
           "description": "Which search ID found this source."
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "below_relevance_threshold",
+            "duplicate_url",
+            "scorer_did_not_score"
+          ],
+          "description": "Machine-readable rejection bucket. Must match one of the reasons defined in diogenes.pipeline.REJECTION_REASONS. Downstream tooling filters on this field; keep the enum tight so additions are deliberate."
         }
       },
       "additionalProperties": false
