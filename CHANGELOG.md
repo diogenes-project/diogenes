@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/)
 and this project adheres to [Semantic Versioning](https://semver.org/).
 
-## [1.2.0] - 2026-05-14
+## [1.2.1] - 2026-05-14
 
 ### Bug fixes
 
@@ -51,6 +51,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - pass boolean to ci-security reusable workflow inputs (#203)
 - specify language and container-tag in publish-release caller (#206)
 - use URL source format in marketplace.json and add version to plugin.json (#216)
+- use explicit secret passing for cross-org reusable workflow
 
 ### CI
 
