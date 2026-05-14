@@ -2,11 +2,11 @@
 """Compile sub-agent prompts by concatenating guidelines + prompt + schema.
 
 Produces self-contained prompt files the Claude Code plugin reads from
-`ai-research-methodology/skills/research/prompts/compiled/`. Each compiled
-prompt includes the common guidelines, the sub-agent prompt, and the
-output JSON schema — everything the model needs in a single file.
+`skills/research/prompts/compiled/`. Each compiled prompt includes the
+common guidelines, the sub-agent prompt, and the output JSON schema —
+everything the model needs in a single file.
 
-Also produces `ai-research-methodology/standalone/research.md`: a single
+Also produces `standalone/research.md`: a single
 copy-paste unified methodology doc for any AI interface without the
 skill or MCP server.
 
@@ -31,8 +31,8 @@ GUIDELINES_PATH = PROMPTS_DIR / "common-guidelines.md"
 
 # Output locations.
 REPO_ROOT = Path(__file__).parent.parent
-SKILL_COMPILED_DIR = REPO_ROOT / "ai-research-methodology" / "skills" / "research" / "prompts" / "compiled"
-STANDALONE_PATH = REPO_ROOT / "ai-research-methodology" / "standalone" / "research.md"
+SKILL_COMPILED_DIR = REPO_ROOT / "skills" / "research" / "prompts" / "compiled"
+STANDALONE_PATH = REPO_ROOT / "standalone" / "research.md"
 
 # Mapping: sub-agent prompt filename -> output schema filename
 # Sub-agents that don't have an output schema (or don't need one compiled)
