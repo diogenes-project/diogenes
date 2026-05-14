@@ -19,4 +19,6 @@ jobs:
     with:
       language: python
       container-tag: "3.14"
-    secrets: inherit
+    secrets:
+      APP_CLIENT_ID: ${{ secrets.APP_CLIENT_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
