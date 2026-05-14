@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/wphillipmoore/ai-research-methodology/main/src/diogenes/schemas/archive.schema.json",
+  "$id": "https://raw.githubusercontent.com/diogenes-project/diogenes/main/src/diogenes/schemas/archive.schema.json",
   "title": "Research Archive",
   "description": "Complete pipeline archive for temporal revisitation. Contains all step outputs and metadata for a single run.",
   "type": "object",

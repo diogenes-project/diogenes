@@ -450,7 +450,7 @@ Your output MUST conform to this JSON Schema. This is the canonical specificatio
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/wphillipmoore/ai-research-methodology/main/src/diogenes/schemas/evidence-packets.schema.json",
+  "$id": "https://raw.githubusercontent.com/diogenes-project/diogenes/main/src/diogenes/schemas/evidence-packets.schema.json",
   "title": "Evidence Packets",
   "description": "Output of the evidence-extractor sub-agent for a single claim or query. Grounds synthesis in specific passages from scored sources: each packet links a verbatim excerpt to a hypothesis (or theme) with an explicit supports / refutes / nuances / context relationship.",
   "type": "object",

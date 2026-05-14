@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/wphillipmoore/ai-research-methodology/main/src/diogenes/schemas/usage.schema.json",
+  "$id": "https://raw.githubusercontent.com/diogenes-project/diogenes/main/src/diogenes/schemas/usage.schema.json",
   "title": "Usage Report",
   "description": "Token usage, cost estimates, and API call tracking for a research run. On the CLI path all fields are accurate. On the plugin path (inside Claude Code) token counts are not exposed to the skill and those fields are set to 0; plugin-specific statistics that don't fit the canonical shape go under `plugin_metadata`.",
   "type": "object",

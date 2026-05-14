@@ -416,7 +416,7 @@ Your output MUST conform to this JSON Schema. This is the canonical specificatio
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/wphillipmoore/ai-research-methodology/main/src/diogenes/schemas/synthesis.schema.json",
+  "$id": "https://raw.githubusercontent.com/diogenes-project/diogenes/main/src/diogenes/schemas/synthesis.schema.json",
   "title": "Evidence Synthesis, Assessment, and Gaps",
   "description": "Combined output of Steps 6 (synthesis), 7 (assessment), and 8 (gaps) for a single claim or query.",
   "type": "object",

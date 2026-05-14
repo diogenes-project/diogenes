@@ -360,7 +360,7 @@ Your output MUST conform to this JSON Schema. This is the canonical specificatio
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/wphillipmoore/ai-research-methodology/main/src/diogenes/schemas/relevance-scores.schema.json",
+  "$id": "https://raw.githubusercontent.com/diogenes-project/diogenes/main/src/diogenes/schemas/relevance-scores.schema.json",
   "title": "Relevance Scores",
   "description": "Output of the relevance-scorer sub-agent. Contains relevance scores for a batch of search results.",
   "type": "object",
