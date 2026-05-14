@@ -1,0 +1,22 @@
+# https://github.com/vergil-project/vergil-actions/blob/develop/.github/workflows/README.md
+name: CD
+
+on:
+  push:
+    branches: [develop, main]
+  workflow_dispatch:
+
+permissions:
+  attestations: write
+  contents: write
+  id-token: write
+  pull-requests: write
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    uses: vergil-project/vergil-actions/.github/workflows/cd-release.yml@v2.0
+    with:
+      language: python
+      container-tag: "3.14"
+    secrets: inherit

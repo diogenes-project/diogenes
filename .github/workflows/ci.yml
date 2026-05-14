@@ -1,0 +1,55 @@
+# https://github.com/vergil-project/vergil-actions/blob/develop/.github/workflows/README.md
+name: CI
+
+on:
+  pull_request:
+  workflow_call:
+    inputs:
+      run-security:
+        type: boolean
+        default: true
+      run-release:
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    uses: vergil-project/vergil-actions/.github/workflows/ci-audit.yml@v2.0
+    with:
+      language: python
+      versions: '["3.14"]'
+
+  quality:
+    uses: vergil-project/vergil-actions/.github/workflows/ci-quality.yml@v2.0
+    with:
+      language: python
+      versions: '["3.14"]'
+
+  security:
+    uses: vergil-project/vergil-actions/.github/workflows/ci-security.yml@v2.0
+    with:
+      language: python
+      run-standards: ${{ inputs.run-release != 'false' }}
+      run-security: ${{ inputs.run-security != 'false' }}
+    permissions:
+      contents: read
+      security-events: write
+
+  test:
+    uses: vergil-project/vergil-actions/.github/workflows/ci-test.yml@v2.0
+    with:
+      language: python
+      versions: '["3.14"]'
+
+  version:
+    uses: vergil-project/vergil-actions/.github/workflows/ci-version-bump.yml@v2.0
+    with:
+      language: python
+      run-release: ${{ inputs.run-release != 'false' }}

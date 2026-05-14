@@ -1,0 +1,20 @@
+[project]
+repository-type = "library"
+versioning-scheme = "library"
+branching-model = "library-release"
+release-model = "artifact-publishing"
+primary-language = "python"
+
+[project.co-authors]
+agent = "Co-Authored-By: wphillipmoore-agent <284101533+wphillipmoore-agent@users.noreply.github.com>"
+
+[ci]
+versions = ["3.14"]
+integration-tests = false
+
+[publish]
+release = true
+
+[dependencies]
+vergil = "v2.0"
+vergil-tooling = "v2.0"

@@ -1,0 +1,248 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working
+with code in this repository.
+
+## Standards References
+
+This repository follows documented standards. Do NOT attempt to load and
+memorize these at session start. Consult them on demand when the work
+requires it.
+
+- **Repository-specific standards**: `docs/repository-standards.md` —
+  pre-flight checklist, branching, merge strategy, commit format, AI
+  co-authors, linting policy
+- **Standards reference**: https://github.com/wphillipmoore/standards-and-conventions
+  — historical reference; active standards documentation lives in the
+  vergil-tooling repository under `docs/`.
+
+Read these documents when:
+- Setting up the development environment
+- Making decisions about branching, merging, or releasing
+- Unsure about commit message format or PR conventions
+- Validating repository structure or compliance
+
+## Memory management
+
+Memory is allowed with human approval. The authoritative policy is in
+the user's global `~/.claude/CLAUDE.md` — agents must propose memory
+writes and suggest a destination (repo memory, global CLAUDE.md, or
+plugin/skill issue) before writing. See that file for the full
+workflow.
+
+Available skills:
+- `/vergil-claude-plugin:memory-init` — set up or update the policy header
+  in a project's `MEMORY.md`.
+- `/vergil-claude-plugin:memory-audit` — structured collaborative review
+  of memory files.
+
+## Parallel AI agent development
+
+This repository supports running multiple Claude Code agents in parallel via
+git worktrees. The convention keeps parallel agents' working trees isolated
+while preserving shared project memory (which Claude Code derives from the
+session's starting CWD).
+
+**Canonical spec:**
+[`vergil-tooling/docs/specs/worktree-convention.md`](https://github.com/vergil-project/vergil-tooling/blob/develop/docs/specs/worktree-convention.md)
+— full rationale, trust model, failure modes, and memory-path implications.
+The canonical text lives in `vergil-tooling`; this section is the local
+on-ramp.
+
+### Structure
+
+```text
+~/dev/github/diogenes/     ← sessions ALWAYS start here
+  .git/
+  CLAUDE.md, src/, docs/, …               ← main worktree (usually `develop`)
+  .worktrees/                             ← container for parallel worktrees
+    issue-150-adopt-worktree-convention/  ← worktree on feature/150-...
+    …
+```
+
+### Rules
+
+1. **Sessions always start at the project root.**
+   `cd ~/dev/github/diogenes && claude` — never from inside
+   `.worktrees/<name>/`. This keeps the memory-path slug stable and shared.
+2. **Each parallel agent is assigned exactly one worktree.** The session
+   prompt names the worktree (see Agent prompt contract below).
+   - For Read / Edit / Write tools: use the worktree's absolute path.
+   - For Bash commands that touch files: `cd` into the worktree first,
+     or use absolute paths.
+3. **The main worktree is read-only.** All edits flow through a worktree
+   on a feature branch — the logical endpoint of the standing
+   "no direct commits to `develop`" policy.
+4. **One worktree per issue.** Don't stack in-flight issues. When a
+   branch lands, remove the worktree before starting the next.
+5. **Naming: `issue-<N>-<short-slug>`.** `<N>` is the GitHub issue
+   number; `<short-slug>` is 2–4 kebab-case tokens.
+
+### Agent prompt contract
+
+When launching a parallel-agent session, use this template (fill in the
+placeholders):
+
+```text
+You are working on issue #<N>: <issue title>.
+
+Your worktree is: /Users/pmoore/dev/github/diogenes/.worktrees/issue-<N>-<slug>/
+Your branch is:   feature/<N>-<slug>
+
+Rules for this session:
+- Do all git operations from inside your worktree:
+    cd <absolute-worktree-path> && git <command>
+- For Read / Edit / Write tools, use the absolute worktree path.
+- For Bash commands that touch files, cd into the worktree first
+  or use absolute paths.
+- Do not edit files at the project root. The main worktree is
+  read-only — all changes flow through your worktree on your
+  feature branch.
+```
+
+All fields are required.
+
+## Project Overview
+
+`diogenes` is a deterministic AI research coordinator combining nine
+intelligence and scientific frameworks into an evidence-based process.
+It is available as a Claude Code plugin, a Python coordinator for
+API-driven research, and a standalone prompt for any AI interface.
+
+The repository contains:
+- **Plugin** (`skills/`, `standalone/`): Claude Code plugin with `/diogenes:research` skill
+- **Prompts** (`prompts/`): Shared prompt files for sub-agents (used by both plugin and Python)
+- **Schemas** (`docs/design/schemas/`): JSON Schema definitions for data interchange
+- **Coordinator** (`coordinator/`): Python coordinator for API-driven orchestration (WIP)
+- **Templates** (`templates/`): Jinja2 templates for markdown output rendering (WIP)
+- **Tests** (`tests/`): pytest test suite
+- **Design docs** (`docs/design/`): Architecture, workflow, and schema documentation
+
+**Status**: Pre-Alpha (plugin is functional; Python coordinator is in design)
+
+**Standards reference**: https://github.com/wphillipmoore/standards-and-conventions
+— historical reference; active standards documentation lives in the
+vergil-tooling repository under `docs/`.
+
+## Development Commands
+
+### Vergil Tooling
+
+`vergil-tooling` is distributed as a host-level developer tool and
+provided inside the dev container via the Docker image. It is not a Python
+dev dependency. See
+https://github.com/vergil-project/vergil-tooling/blob/develop/docs/specs/host-level-tool.md
+for the canonical spec.
+
+One-time host install (puts `vrg-docker-run`, `vrg-commit`, `vrg-submit-pr`,
+`vrg-prepare-release`, `vrg-finalize-repo` on PATH):
+
+```bash
+uv tool install 'vergil-tooling @ git+https://github.com/vergil-project/vergil-tooling@v2.0'
+```
+
+Per-clone setup:
+
+```bash
+git config core.hooksPath .githooks   # Enable the pre-commit gate
+uv sync --group dev                   # Install runtime + dev deps
+```
+
+Inside the dev container, `vrg-validate` is provided by the Docker
+image. Host commands (`vrg-commit`, `vrg-submit-pr`, etc.) come from the
+`uv tool install` above.
+
+### Two-Tier CI Model
+
+Testing is split across two tiers with increasing scope and cost:
+
+**Tier 1 — Local pre-commit (seconds):** The single entry point
+`vrg-docker-run -- uv run vrg-validate` runs everything (lint,
+typecheck, tests, audit, custom checks) inside one dev container.
+Enforced via the `.githooks` pre-commit gate on every commit.
+
+```bash
+vrg-docker-run -- uv run vrg-validate
+```
+
+`vrg-validate` reads `primary_language` from `vergil.toml` and
+runs checks from its built-in command registry. Repo-specific custom
+validation (version checks) lives in `scripts/bin/validate-custom`,
+which `vrg-validate` discovers and runs automatically.
+
+**Tier 2 — PR CI (~8-10 min):** Triggers on `pull_request`. Full Python
+matrix (3.12, 3.13, 3.14), security scanners (CodeQL, Trivy, Semgrep),
+standards compliance, and release gates.
+
+### Testing
+
+```bash
+# Run tests
+uv run pytest -v
+
+# Run tests with coverage
+uv run pytest --cov=diogenes --cov-report=term-missing --cov-branch
+
+# Run integration tests (requires ANTHROPIC_API_KEY)
+AI_RESEARCH_RUN_INTEGRATION=1 uv run pytest -m integration
+```
+
+### Linting and Formatting
+
+```bash
+# Run Ruff linter
+uv run ruff check
+
+# Run Ruff formatter (check only)
+uv run ruff format --check .
+
+# Run Ruff formatter (fix)
+uv run ruff format .
+
+# Run mypy type checker
+uv run mypy src tests
+```
+
+## Architecture
+
+### Dual Interface
+
+The research methodology is available through two interfaces:
+
+1. **Claude Code Plugin** (`skills/`, `standalone/`): Interactive use
+   via `/diogenes:research run`, `/diogenes:research fact-check`, etc.
+   The plugin's SKILL.md orchestrates research within a Claude Code
+   session.
+
+2. **Python Coordinator** (`coordinator/`): Programmatic use via API.
+   The coordinator reads shared prompts, calls AI sub-agents via the
+   Anthropic API, manages parallelism, and renders output from JSON
+   templates.
+
+Both interfaces use the same shared prompt files (`prompts/`).
+
+### Sub-Agent Architecture
+
+Each research step is a focused AI sub-agent with:
+- A shared prompt file (`prompts/sub-agents/*.md`)
+- An input JSON schema
+- An output JSON schema
+- A standard preamble for input handling (JSON preferred, text fallback)
+
+See `docs/design/workflow-architecture.md` for the full workflow chart
+and sub-agent definitions.
+
+### Key Design Principles
+
+1. **JSON is the canonical data format.** Markdown is a rendering.
+2. **Every sub-agent: JSON in, JSON out.** Validate before processing.
+3. **The prompt is the deliverable.** Invocation path is plumbing.
+4. **Python handles deterministic work.** AI handles analytical work.
+5. **Correctness before cost.** Make it right, then make it fast.
+
+## Key References
+
+- `docs/design/workflow-architecture.md` — Full workflow chart
+- `docs/design/sub-agent-preamble.md` — Standard sub-agent input handling
+- `docs/design/schemas/` — JSON Schema definitions
+- `docs/design/tooling-integration.md` — Standard tooling integration plan

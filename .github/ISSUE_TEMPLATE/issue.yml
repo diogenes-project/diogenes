@@ -1,0 +1,32 @@
+name: Issue
+description: Track work with explicit acceptance criteria.
+body:
+  - type: dropdown
+    id: issue_type
+    attributes:
+      label: Issue type
+      options:
+        - feature
+        - bug
+        - documentation
+        - refactor
+        - chore
+        - research
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / Goal
+      description: What is broken, missing, or needed? Include context and motivation.
+      placeholder: Describe the problem or desired outcome.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: What does "done" look like? One sentence is fine for trivial changes.
+      placeholder: List the conditions that must be true when this is complete.
+    validations:
+      required: true

@@ -1,0 +1,24 @@
+{
+  "name": "diogenes",
+  "description": "Diogenes — deterministic AI research methodology combining ICD 203, GRADE, PRISMA, Cochrane, and five other frameworks into an evidence-based process. Anti-sycophantic by design.",
+  "version": "1.2.0",
+  "author": {
+    "name": "W. Phillip Moore",
+    "email": "w.phillip.moore@gmail.com"
+  },
+  "homepage": "https://github.com/diogenes-project/diogenes",
+  "repository": "https://github.com/diogenes-project/diogenes",
+  "license": "GPL-3.0-only",
+  "keywords": [
+    "research",
+    "methodology",
+    "fact-checking",
+    "evidence",
+    "ICD-203",
+    "GRADE",
+    "PRISMA",
+    "anti-sycophancy",
+    "claim-verification",
+    "intelligence-analysis"
+  ]
+}

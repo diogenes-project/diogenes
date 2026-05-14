@@ -1,0 +1,107 @@
+# Standard Tooling Integration Plan
+
+## Goal
+
+Configure the diogenes repo as a standard Python repo
+in the same ecosystem as mq-rest-admin-python, consuming:
+
+- **vergil-tooling** — CLI tools, git hooks, dev scripts, Docker images
+- **vergil-actions** — GitHub Actions reusable workflows (CI, security, publish)
+- **standards-and-conventions** — documentation standards, AI agent config
+
+## What needs to be set up
+
+### 1. GitHub Actions workflows
+
+Clone from mq-rest-admin-python and adapt:
+
+| Workflow | Source | Adaptations |
+|----------|--------|-------------|
+| ci.yml | mq-rest-admin-python | Remove MQ-specific integration tests, keep matrix + security |
+| publish.yml | mq-rest-admin-python | Change package name, remove MQ-specific gates |
+| add-to-project.yml | mq-rest-admin-python | Update project ID |
+
+### 2. Custom validation (scripts/)
+
+`vrg-validate` handles lint, typecheck, test, and audit via its built-in
+command registry. Repo-specific checks live in `scripts/`:
+
+| Path | Purpose |
+|------|---------|
+| scripts/bin/validate-custom | Entry point discovered by vrg-validate |
+| scripts/helpers/validate_version.py | Semantic versioning policy |
+
+### 3. Git hooks
+
+```bash
+git config core.hooksPath .githooks
+```
+
+The repo vendors `.githooks/pre-commit` (the canonical pre-commit gate
+from the host-level-tool spec). See
+https://github.com/vergil-project/vergil-tooling/blob/develop/docs/specs/host-level-tool.md.
+
+### 4. Repository standards docs
+
+Create:
+- docs/repository-standards.md (repository profile)
+- docs/standards-and-conventions.md (canonical reference)
+- docs/validation.md (canonical validation command)
+
+Repository profile:
+```yaml
+repository_type: library
+versioning_scheme: library
+branching_model: library-release
+release_model: artifact-publishing
+primary_language: python
+```
+
+### 5. CLAUDE.md and AGENTS.md
+
+Clone from mq-rest-admin-python, adapt for this repo:
+- AI agent configuration
+- Three-tier test documentation
+- Standard-tooling setup instructions
+- Memory policy
+
+### 6. Changelog infrastructure
+
+Add:
+- cliff.toml (Keep a Changelog format)
+- cliff-release-notes.toml (GitHub Release notes)
+
+### 7. License compliance
+
+Handled by `vrg-validate`'s centralized allowlist in the command registry.
+
+### 8. uv lock file
+
+Generate:
+- uv.lock
+- requirements.txt (exported)
+- requirements-dev.txt (exported)
+
+## Implementation order
+
+1. Git hooks setup (immediate, local-only)
+2. Dev scripts (enables Tier 1 local testing)
+3. Repository standards docs (required by CI)
+4. CLAUDE.md + AGENTS.md (AI agent config)
+5. GitHub Actions workflows (enables Tier 2 PR-CI)
+6. Changelog infrastructure
+7. License compliance
+8. uv lock file generation
+9. publish.yml (when ready for PyPI)
+
+## What stays unique to this repo
+
+- The plugin directory (diogenes/)
+- prompts/ directory
+- docs/design/ (architecture docs)
+- schemas/ (JSON schemas)
+- templates/ (Jinja2)
+- coordinator/ (Python coordinator)
+
+These are layered ON TOP of the standard tooling infrastructure, not
+replacements for it.

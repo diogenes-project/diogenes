@@ -1,0 +1,611 @@
+"""Pipeline state machine for dual-execution-path orchestration.
+
+Defines the research pipeline as a sequence of steps, each with:
+- An output file (the artifact this step produces)
+- Prerequisites (files that must exist before this step runs)
+- A compiled sub-agent prompt (for LLM steps) or a Python handler name
+- Post-step validators (run after the step completes)
+- Required MCP tools (for skill-path execution)
+
+Both CLI and skill paths read from the same step definitions. They
+diverge only at the execution layer:
+- CLI: calls Python handler functions directly
+- Skill: agent calls dio_next_step() to get instructions, then either
+  executes the LLM prompt or calls dio_execute_step() for Python-only work
+
+The output directory IS the primary state store. pipeline-state.json
+provides explicit step-completion tracking with timestamps and diagnostics.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import subprocess
+from dataclasses import dataclass, field
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any
+
+import diogenes
+
+# Resolve against the package directory so git queries run inside the
+# Diogenes source tree, not wherever the pipeline happens to be writing.
+_PACKAGE_DIR = Path(__file__).parent
+
+
+def _git_metadata() -> dict[str, Any] | None:
+    """Collect git commit/branch/dirty for the Diogenes source tree.
+
+    Returns None when the package is installed from a wheel or the git
+    CLI is otherwise unavailable — version metadata gracefully degrades
+    to just the package_version in that case.
+    """
+    # S603/S607: we deliberately invoke git by name (not an absolute path)
+    # so it resolves from PATH — the standard way of calling git across
+    # macOS/Linux/CI images. Arguments are constant, no user input.
+    try:
+        commit = subprocess.check_output(
+            ["git", "rev-parse", "HEAD"],  # noqa: S607
+            cwd=_PACKAGE_DIR,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).strip()
+        branch = subprocess.check_output(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],  # noqa: S607
+            cwd=_PACKAGE_DIR,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).strip()
+        dirty_output = subprocess.check_output(
+            ["git", "status", "--porcelain"],  # noqa: S607
+            cwd=_PACKAGE_DIR,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError):
+        return None
+    return {"commit": commit, "branch": branch, "dirty": bool(dirty_output.strip())}
+
+
+def _compute_version() -> dict[str, Any]:
+    """Version stamp for a run — the code that produced the outputs.
+
+    Always includes ``package_version``. Adds ``git_commit``,
+    ``git_branch``, and ``git_dirty`` when available (i.e., running
+    from a source checkout).
+    """
+    meta: dict[str, Any] = {"package_version": diogenes.__version__}
+    git = _git_metadata()
+    if git is not None:
+        meta["git_commit"] = git["commit"]
+        meta["git_branch"] = git["branch"]
+        meta["git_dirty"] = git["dirty"]
+    return meta
+
+
+@dataclass
+class StepDefinition:
+    """A single pipeline step in the research workflow."""
+
+    name: str
+    """Unique step identifier (e.g., 'step5b_extract_evidence')."""
+
+    display_name: str
+    """Human-readable name for progress output (e.g., 'Extracting evidence packets')."""
+
+    output_file: str | None
+    """The JSON file this step produces (e.g., 'evidence-packets.json'). None for steps
+    that modify existing files rather than creating new ones."""
+
+    category: str
+    """One of 'llm', 'python_only', or 'hybrid'. Determines execution path."""
+
+    requires: list[str] = field(default_factory=list)
+    """Files that must exist before this step can run."""
+
+    schema: str | None = None
+    """Output schema filename (e.g., 'evidence-packets.schema.json'). Used for both
+    constrained decoding (CLI) and post-hoc validation (skill)."""
+
+    prompt: str | None = None
+    """Compiled sub-agent prompt filename (e.g., 'evidence-packets.md'). None for
+    Python-only steps."""
+
+    python_handler: str | None = None
+    """Name of the pipeline.py function to call for this step. Used by CLI path
+    and by dio_execute_step for Python-only steps on the skill path."""
+
+    post_validators: list[str] = field(default_factory=list)
+    """Validator names to run after step completion (e.g., 'validate_packets')."""
+
+    mcp_tools: list[str] = field(default_factory=list)
+    """MCP tools the agent needs for this step (e.g., ['dio_fetch'])."""
+
+    per_source: bool = False
+    """If True, this step runs once per source (e.g., evidence extraction).
+    The state machine handles iteration; the step function handles one source."""
+
+
+# The canonical pipeline step sequence. Both CLI and skill paths use this.
+# Order matters — each step's requires are checked against prior outputs.
+PIPELINE_STEPS: list[StepDefinition] = [
+    StepDefinition(
+        name="step_01_research_input_clarified",
+        display_name="Step 1: Clarifying input",
+        output_file="research-input-clarified.json",
+        category="llm",
+        requires=[],
+        schema="research-input-clarified.schema.json",
+        prompt="research-input-clarified.md",
+        python_handler="step2_generate_hypotheses",  # Legacy name — will rename in #117
+    ),
+    StepDefinition(
+        name="step_02_hypotheses",
+        display_name="Step 2: Generating competing hypotheses",
+        output_file="hypotheses.json",
+        category="llm",
+        requires=["research-input-clarified.json"],
+        schema="hypotheses.schema.json",
+        prompt="hypotheses.md",
+        python_handler="step2_generate_hypotheses",
+    ),
+    StepDefinition(
+        name="step_03_search_plans",
+        display_name="Step 3: Designing searches",
+        output_file="search-plans.json",
+        category="llm",
+        requires=["research-input-clarified.json", "hypotheses.json"],
+        schema="search-plans.schema.json",
+        prompt="search-plans.md",
+        python_handler="step3_design_searches",
+    ),
+    StepDefinition(
+        name="step_04_search_results",
+        display_name="Step 4: Executing searches",
+        output_file="search-results.json",
+        category="hybrid",
+        requires=["research-input-clarified.json", "search-plans.json"],
+        schema="search-results.schema.json",
+        prompt="search-results.md",
+        python_handler="step4_execute_searches",
+        mcp_tools=["dio_search", "dio_search_batch"],
+    ),
+    StepDefinition(
+        name="step_05_scorecards",
+        display_name="Step 5: Scoring sources",
+        output_file="scorecards.json",
+        category="hybrid",
+        requires=["research-input-clarified.json", "search-results.json"],
+        schema="scorecards.schema.json",
+        prompt="scorecards.md",
+        python_handler="step5_score_sources",
+        mcp_tools=["dio_fetch"],
+    ),
+    StepDefinition(
+        name="step_06_evidence_packets",
+        display_name="Step 6: Extracting evidence packets",
+        output_file="evidence-packets.json",
+        category="hybrid",
+        requires=["research-input-clarified.json", "hypotheses.json", "scorecards.json"],
+        schema="evidence-packets.schema.json",
+        prompt="evidence-packets.md",
+        python_handler="step5b_extract_evidence",
+        post_validators=["validate_packets"],
+        per_source=True,
+    ),
+    StepDefinition(
+        name="step_07_synthesis",
+        display_name="Step 7: Synthesizing evidence and assessing",
+        output_file="synthesis.json",
+        category="llm",
+        requires=[
+            "research-input-clarified.json",
+            "hypotheses.json",
+            "scorecards.json",
+            "evidence-packets.json",
+        ],
+        schema="synthesis.schema.json",
+        prompt="synthesis.md",
+        python_handler="steps678_synthesize_and_assess",
+    ),
+    StepDefinition(
+        name="step_08_self_audit",
+        display_name="Step 8: Self-audit and verification",
+        output_file="self-audit.json",
+        category="llm",
+        requires=[
+            "research-input-clarified.json",
+            "hypotheses.json",
+            "search-results.json",
+            "scorecards.json",
+            "evidence-packets.json",
+            "synthesis.json",
+        ],
+        schema="self-audit.schema.json",
+        prompt="self-audit.md",
+        python_handler="step9_self_audit",
+    ),
+    StepDefinition(
+        name="step_09_reports",
+        display_name="Step 9: Assembling final reports",
+        output_file="reports.json",
+        category="llm",
+        requires=[
+            "research-input-clarified.json",
+            "hypotheses.json",
+            "search-results.json",
+            "scorecards.json",
+            "synthesis.json",
+            "self-audit.json",
+        ],
+        schema="reports.schema.json",
+        prompt="reports.md",
+        python_handler="step10_report",
+    ),
+    StepDefinition(
+        name="step_10_archive",
+        display_name="Step 10: Archiving",
+        output_file="archive.json",
+        category="python_only",
+        requires=[
+            "research-input-clarified.json",
+            "hypotheses.json",
+            "search-plans.json",
+            "search-results.json",
+            "scorecards.json",
+            "evidence-packets.json",
+            "synthesis.json",
+            "self-audit.json",
+            "reports.json",
+        ],
+        python_handler="step11_archive",
+    ),
+    StepDefinition(
+        name="step_11_pipeline_events",
+        display_name="Step 11: Reconciling events",
+        output_file="pipeline-events.json",
+        category="python_only",
+        requires=["archive.json"],
+        python_handler="reconcile_and_flush",
+    ),
+]
+
+
+# Expected number of components after splitting a canonical step name
+# (``step``, two-digit number, logical suffix) on ``_`` with maxsplit=2.
+_CANONICAL_STEP_NAME_PARTS = 3
+
+
+def _logical_name(step_name: str) -> str:
+    """Strip the ``step_NN_`` prefix from a canonical step name.
+
+    Turns ``step_09_reports`` → ``reports``, ``step_06_evidence_packets`` →
+    ``evidence_packets``. Used by :func:`resolve_step_identifier` so
+    users can type short names on the command line.
+    """
+    # The canonical names match step_NN_<logical>. Split twice on "_":
+    # first pops "step", second pops the two-digit number.
+    parts = step_name.split("_", 2)
+    if len(parts) < _CANONICAL_STEP_NAME_PARTS:
+        return step_name
+    return parts[2]
+
+
+# Accepted short aliases beyond the derived logical names. These let the
+# common case ("rerun the reports step", "rerun the audit step") accept
+# singular/abbreviated forms without needing to remember whether the
+# canonical suffix is plural.
+_STEP_ALIASES: dict[str, str] = {
+    "clarify": "step_01_research_input_clarified",
+    "clarifier": "step_01_research_input_clarified",
+    "input": "step_01_research_input_clarified",
+    "hypothesis": "step_02_hypotheses",
+    "search_plan": "step_03_search_plans",
+    "plan": "step_03_search_plans",
+    "search": "step_04_search_results",
+    "score": "step_05_scorecards",
+    "scorecard": "step_05_scorecards",
+    "evidence": "step_06_evidence_packets",
+    "packets": "step_06_evidence_packets",
+    "synthesize": "step_07_synthesis",
+    "audit": "step_08_self_audit",
+    "report": "step_09_reports",
+    "events": "step_11_pipeline_events",
+}
+
+
+def _resolve_numeric_step(num: int) -> str:
+    """Resolve a 1-indexed pipeline step number to its canonical name."""
+    if num < 1 or num > len(PIPELINE_STEPS):
+        msg = f"--from-step {num} out of range. Valid step numbers: 1..{len(PIPELINE_STEPS)}."
+        raise ValueError(msg)
+    return PIPELINE_STEPS[num - 1].name
+
+
+def _resolve_named_step(key: str, original: str) -> str:
+    """Resolve a lowercased, non-numeric string to a canonical step name.
+
+    Checks canonical names, then logical suffixes, then short aliases.
+    Raises ValueError with a hint listing valid options if nothing matches.
+    """
+    for step in PIPELINE_STEPS:
+        if step.name.lower() == key:
+            return step.name
+    for step in PIPELINE_STEPS:
+        if _logical_name(step.name).lower() == key:
+            return step.name
+    if key in _STEP_ALIASES:
+        return _STEP_ALIASES[key]
+    msg = f"Unknown pipeline step: {original!r}. Valid options: {', '.join(describe_valid_step_identifiers())}."
+    raise ValueError(msg)
+
+
+def resolve_step_identifier(identifier: str | int) -> str:
+    """Resolve a user-supplied step identifier to a canonical step name.
+
+    Accepts:
+    - a 1-indexed integer matching a position in :data:`PIPELINE_STEPS`
+    - a canonical step name (``step_09_reports``)
+    - the logical suffix (``reports``, ``evidence_packets``)
+    - a short alias (``report``, ``audit``, ``score``) — see
+      :data:`_STEP_ALIASES`.
+
+    Case-insensitive for string forms. Strings containing only digits
+    are treated as integers.
+
+    Returns:
+        The canonical step name (e.g. ``step_09_reports``).
+
+    Raises:
+        ValueError: when the identifier does not match any known step.
+            The error message lists all valid options so the CLI can
+            surface a usable hint without additional work.
+        TypeError: when the identifier is neither int nor str.
+
+    """
+    if isinstance(identifier, bool):
+        # bool is a subclass of int — guard explicitly so a stray
+        # ``True`` doesn't resolve to step 1.
+        msg = f"Step identifier must be int or str, got {type(identifier).__name__}"
+        raise TypeError(msg)
+    if isinstance(identifier, int):
+        return _resolve_numeric_step(identifier)
+    if isinstance(identifier, str):
+        stripped = identifier.strip()
+        if not stripped:
+            msg = "--from-step requires a value; got empty string"
+            raise ValueError(msg)
+        if stripped.isdigit():
+            return _resolve_numeric_step(int(stripped))
+        return _resolve_named_step(stripped.lower(), identifier)
+    # Defensive: callers using typed APIs won't hit this, but a runtime
+    # caller (tests, REPL, unchecked user input) passing a float or
+    # other object should get a clear TypeError rather than an opaque
+    # attribute error deeper in the call chain.
+    msg = f"Step identifier must be int or str, got {type(identifier).__name__}"  # type: ignore[unreachable]
+    raise TypeError(msg)
+
+
+def describe_valid_step_identifiers() -> list[str]:
+    """Return a list of human-readable step identifiers.
+
+    Each entry reads like ``9 (reports)`` — the numeric position and
+    its logical name. Used in error messages when the user supplies
+    an invalid ``--from-step`` value.
+    """
+    return [f"{i} ({_logical_name(s.name)})" for i, s in enumerate(PIPELINE_STEPS, 1)]
+
+
+@dataclass
+class StepStatus:
+    """Completion record for a single step."""
+
+    name: str
+    status: str  # "running", "complete", "failed", "skipped"
+    started_at: str | None = None
+    completed_at: str | None = None
+    elapsed_seconds: float | None = None
+    output_file: str | None = None
+    diagnostics: str | None = None
+
+
+class PipelineState:
+    """Tracks pipeline execution state via pipeline-state.json."""
+
+    def __init__(self, run_dir: Path) -> None:  # noqa: D107
+        self.run_dir = run_dir
+        self._state_file = run_dir / "pipeline-state.json"
+        self._completed: dict[str, StepStatus] = {}
+        self._created_at: str | None = None
+        # Version is captured at run *start* — it identifies which code
+        # produced the outputs. On reload (resume), we preserve the
+        # original version rather than overwrite, so the field always
+        # points back to the source commit that kicked the run off.
+        self._version: dict[str, Any] | None = None
+        if self._state_file.exists():
+            self._load()
+        else:
+            self._created_at = datetime.now(tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+            self._version = _compute_version()
+
+    def _load(self) -> None:
+        """Load state from disk."""
+        data = json.loads(self._state_file.read_text())
+        self._created_at = data.get("created_at")
+        self._version = data.get("version")
+        for entry in data.get("steps", []):
+            self._completed[entry["name"]] = StepStatus(**entry)
+
+    def _save(self) -> None:
+        """Persist state to disk."""
+        now = datetime.now(tz=UTC)
+        now_str = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+        # Always compute elapsed from created_at — useful even for
+        # incomplete/crashed runs (shows how far we got before dying).
+        elapsed: float | None = None
+        if self._created_at:
+            try:
+                created = datetime.strptime(self._created_at, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
+                elapsed = round((now - created).total_seconds(), 1)
+            except ValueError:
+                pass
+        # Capture the PID of the process that wrote this state snapshot.
+        # If the process crashes, the macOS crash report's PID can be
+        # matched against this field to identify exactly which run died.
+        # Captured on every save (not just init) so the value always
+        # reflects the process currently driving the pipeline.
+        data = {
+            "created_at": self._created_at,
+            "updated_at": now_str,
+            "completed_at": now_str if self.all_complete() else None,
+            "elapsed_seconds": elapsed,
+            "pid": os.getpid(),
+            "version": self._version,
+            "steps": [
+                {
+                    "name": s.name,
+                    "status": s.status,
+                    "started_at": s.started_at,
+                    "completed_at": s.completed_at,
+                    "elapsed_seconds": s.elapsed_seconds,
+                    "output_file": s.output_file,
+                    "diagnostics": s.diagnostics,
+                }
+                for s in self._completed.values()
+            ],
+        }
+        self._state_file.write_text(json.dumps(data, indent=2) + "\n")
+
+    def is_complete(self, step_name: str) -> bool:
+        """Check if a step has been completed successfully."""
+        entry = self._completed.get(step_name)
+        return entry is not None and entry.status == "complete"
+
+    def mark_started(self, step_name: str) -> None:
+        """Record a step as started (running)."""
+        self._completed[step_name] = StepStatus(
+            name=step_name,
+            status="running",
+            started_at=datetime.now(tz=UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+        )
+        self._save()
+
+    def mark_complete(
+        self,
+        step_name: str,
+        output_file: str | None = None,
+        diagnostics: str | None = None,
+    ) -> None:
+        """Record a step as successfully completed."""
+        now = datetime.now(tz=UTC)
+        now_str = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+        existing = self._completed.get(step_name)
+        started = existing.started_at if existing else now_str
+        # Compute elapsed from started_at
+        elapsed: float | None = None
+        if started:
+            try:
+                start_dt = datetime.strptime(started, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
+                elapsed = (now - start_dt).total_seconds()
+            except ValueError:
+                pass
+        self._completed[step_name] = StepStatus(
+            name=step_name,
+            status="complete",
+            started_at=started,
+            completed_at=now_str,
+            elapsed_seconds=round(elapsed, 1) if elapsed is not None else None,
+            output_file=output_file,
+            diagnostics=diagnostics,
+        )
+        self._save()
+
+    def mark_failed(self, step_name: str, diagnostics: str) -> None:
+        """Record a step as failed."""
+        now = datetime.now(tz=UTC)
+        now_str = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+        existing = self._completed.get(step_name)
+        started = existing.started_at if existing else now_str
+        elapsed: float | None = None
+        if started:
+            try:
+                start_dt = datetime.strptime(started, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)
+                elapsed = (now - start_dt).total_seconds()
+            except ValueError:
+                pass
+        self._completed[step_name] = StepStatus(
+            name=step_name,
+            status="failed",
+            started_at=started,
+            completed_at=now_str,
+            elapsed_seconds=round(elapsed, 1) if elapsed is not None else None,
+            diagnostics=diagnostics,
+        )
+        self._save()
+
+    def next_step(self) -> StepDefinition | None:
+        """Determine the next step to execute.
+
+        Returns the first step in PIPELINE_STEPS whose prerequisites are
+        met and which hasn't been completed yet. Returns None if all steps
+        are done.
+        """
+        for step in PIPELINE_STEPS:
+            if self.is_complete(step.name):
+                continue
+            # Check prerequisites
+            prereqs_met = True
+            for req in step.requires:
+                if not (self.run_dir / req).exists():
+                    prereqs_met = False
+                    break
+            if prereqs_met:
+                return step
+        return None
+
+    def all_complete(self) -> bool:
+        """Check if all pipeline steps have been completed."""
+        return all(self.is_complete(s.name) for s in PIPELINE_STEPS)
+
+    def mark_step_and_later_incomplete(self, step_name: str) -> list[str]:
+        """Clear completion records for ``step_name`` and every later step.
+
+        Used by ``dio resume --from-step`` to force a step-level rerun.
+        The identifier must be a canonical step name (resolve via
+        :func:`resolve_step_identifier` first). Returns the list of step
+        names that were cleared, in pipeline order, so the caller can
+        delete the corresponding output files.
+
+        Raises:
+            ValueError: if ``step_name`` is not a canonical pipeline
+                step name. This is a programming error at the call site;
+                the CLI layer is expected to have resolved any
+                user-supplied identifier before calling this method.
+
+        """
+        names = [s.name for s in PIPELINE_STEPS]
+        if step_name not in names:
+            msg = f"Unknown pipeline step: {step_name!r}"
+            raise ValueError(msg)
+        idx = names.index(step_name)
+        cleared: list[str] = []
+        for later in names[idx:]:
+            if later in self._completed:
+                del self._completed[later]
+            cleared.append(later)
+        self._save()
+        return cleared
+
+    def summary(self) -> dict[str, Any]:
+        """Return a summary of pipeline progress."""
+        total = len(PIPELINE_STEPS)
+        completed = sum(1 for s in PIPELINE_STEPS if self.is_complete(s.name))
+        failed = sum(1 for s in self._completed.values() if s.status == "failed")
+        return {
+            "total_steps": total,
+            "completed": completed,
+            "failed": failed,
+            "remaining": total - completed - failed,
+            "next_step": (ns.name if (ns := self.next_step()) else None),
+        }
