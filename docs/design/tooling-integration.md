@@ -2,11 +2,11 @@
 
 ## Goal
 
-Configure the ai-research-methodology repo as a standard Python repo
+Configure the diogenes repo as a standard Python repo
 in the same ecosystem as mq-rest-admin-python, consuming:
 
-- **standard-tooling** — CLI tools, git hooks, dev scripts, Docker images
-- **standard-actions** — GitHub Actions reusable workflows (CI, security, publish)
+- **vergil-tooling** — CLI tools, git hooks, dev scripts, Docker images
+- **vergil-actions** — GitHub Actions reusable workflows (CI, security, publish)
 - **standards-and-conventions** — documentation standards, AI agent config
 
 ## What needs to be set up
@@ -23,12 +23,12 @@ Clone from mq-rest-admin-python and adapt:
 
 ### 2. Custom validation (scripts/)
 
-`st-validate` handles lint, typecheck, test, and audit via its built-in
+`vrg-validate` handles lint, typecheck, test, and audit via its built-in
 command registry. Repo-specific checks live in `scripts/`:
 
 | Path | Purpose |
 |------|---------|
-| scripts/bin/validate-custom | Entry point discovered by st-validate |
+| scripts/bin/validate-custom | Entry point discovered by vrg-validate |
 | scripts/helpers/validate_version.py | Semantic versioning policy |
 
 ### 3. Git hooks
@@ -39,7 +39,7 @@ git config core.hooksPath .githooks
 
 The repo vendors `.githooks/pre-commit` (the canonical pre-commit gate
 from the host-level-tool spec). See
-https://github.com/wphillipmoore/standard-tooling/blob/develop/docs/specs/host-level-tool.md.
+https://github.com/vergil-project/vergil-tooling/blob/develop/docs/specs/host-level-tool.md.
 
 ### 4. Repository standards docs
 
@@ -73,7 +73,7 @@ Add:
 
 ### 7. License compliance
 
-Handled by `st-validate`'s centralized allowlist in the command registry.
+Handled by `vrg-validate`'s centralized allowlist in the command registry.
 
 ### 8. uv lock file
 
@@ -96,7 +96,7 @@ Generate:
 
 ## What stays unique to this repo
 
-- The plugin directory (ai-research-methodology/)
+- The plugin directory (diogenes/)
 - prompts/ directory
 - docs/design/ (architecture docs)
 - schemas/ (JSON schemas)

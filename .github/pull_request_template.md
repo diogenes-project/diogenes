@@ -1,2 +1,2 @@
 > **Do not create PRs manually.**
-> Use [`st-submit-pr`](https://wphillipmoore.github.io/standard-tooling/reference/dev/submit-pr/).
+> Use [`vrg-submit-pr`](https://vergil-project.github.io/vergil-tooling/reference/dev/submit-pr/).

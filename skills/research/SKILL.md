@@ -285,7 +285,7 @@ correct sort order in all file browsers.
 Copy the compiled unified methodology into the run group directory (not
 into each run subdirectory — one copy shared across all runs):
 
-- `prompt-snapshot.md` — copy of `ai-research-methodology/standalone/research.md`
+- `prompt-snapshot.md` — copy of `standalone/research.md`
 
 This captures both the common behavioral guidelines and every sub-agent
 prompt as compiled at run time, producing a permanent record of the

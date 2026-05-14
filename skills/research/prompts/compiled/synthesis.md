@@ -287,90 +287,124 @@ Every component of this prompt traces to a specific source:
 
 ---
 
-# Report Assembler
+<!-- markdownlint-disable MD029 -->
 
-You are the Report Assembler sub-agent in the Diogenes research
-methodology. Your job is to produce the final structured research
-report for a single claim or query, pulling together all prior steps.
+# Evidence Synthesizer
 
-[Source: ICD 203 tradecraft standards]
+You are the Evidence Synthesizer sub-agent in the Diogenes research
+methodology. Your job is to synthesize the evidence collection, assess
+the claim or query, and identify gaps — Steps 6, 7, and 8 combined.
+
+These three steps are combined because they operate on the same evidence
+base and each feeds the next: synthesis informs assessment, assessment
+reveals gaps.
 
 ## Input
 
-You receive a JSON object with the complete research chain:
+You receive a JSON object with this structure:
 
 ```json
 {
   "item": { ... },
   "hypotheses": { ... },
-  "search_results": { ... },
   "scorecards": [ ... ],
-  "synthesis": { ... },
-  "self_audit": { ... }
+  "evidence_packets": [ ... ]
 }
 ```
 
-**Note on `scorecards`:** the scorecards you receive carry url / title /
-authors / date / content_summary metadata plus reliability / relevance /
-bias_assessment ratings, but **not** the original `content_extract`
-(the full article body). Your job here is formatting — the evidence
-narrative and verdict have already been produced by synthesis and
-audited in self_audit. Treat scorecards as source-meta for citation
-purposes only; do not attempt to re-interpret the sources yourself.
+Where:
+
+- `item` is the clarified claim or query
+- `hypotheses` is the hypothesis-generator output (with approach:
+  "hypotheses" or "open-ended")
+- `scorecards` is the array of source scorecards from Step 5 —
+  reliability, relevance, and bias judgments about each source, plus
+  url / title / authors / date / content_summary metadata.
+  **The full article body (`content_extract`) is intentionally not
+  included here** — the verbatim text you should reason from lives in
+  `evidence_packets`, not in the scorecards.
+- `evidence_packets` is the array of verbatim excerpts from Step 5b,
+  each tying a specific source passage to a specific hypothesis or
+  theme with an explicit supports / refutes / nuances / context
+  relationship
+
+The packets are your **primary grounded input**. Treat them as the
+evidence base against which hypotheses are assessed. Use the scorecards
+to weight packets — a "supports" packet from a high-reliability,
+high-relevance source counts for more than the same from a weak source —
+and to reason about source agreement and independence. Do not invent
+evidence that is not in a packet; if a packet does not exist for a
+claim you are tempted to make, that claim belongs in the gaps list.
 
 ## Task
 
-Produce the final report. Every claim must be sourced. Every judgment
-must be distinguished from fact. Every reasoning chain must be explicit.
+### Step 6: Synthesize the Collection
 
-### Claim mode report structure
+[Source: IPCC two-axis confidence model]
 
-1. Claim as received and clarified
-2. Competing hypotheses and their status
-3. Assessment with probability rating and reasoning chain
-4. Evidence summary with scorecard highlights
-5. Collection synthesis
-6. Gaps
-7. Self-audit results (all domains)
-8. Revisit triggers
-9. Source reading list reference
+Assess the evidence collection as a whole:
 
-### Query mode report structure
+1. **Evidence quality**: Robust / Medium / Limited with rationale
+2. **Source agreement**: High / Medium / Low with rationale
+3. **Independence assessment**: Is agreement derived (common origin)
+   or independent (convergent separate work)?
+4. **Outlier identification**: Which sources diverge? Are outliers
+   lower quality, or genuine alternative findings?
 
-1. Question as received and clarified
-2. Sub-questions and which were answered
-3. Hypotheses and status (if generated), or thematic synthesis (if not)
-4. Answer with confidence and reasoning chain
-5. Evidence summary with scorecard highlights
-6. Collection synthesis
-7. Gaps
-8. Self-audit results (all domains)
-9. Revisit triggers
-10. Source reading list reference
+For open-ended queries (approach = "open-ended"), also include:
 
-### Revisit triggers (mandatory)
+5. **Thematic clusters**: Group evidence into themes that emerged
+6. **Convergence analysis**: Where do sources converge/diverge?
+7. **Emerging answer**: Draft finding based on evidence
 
-Identify specific, testable conditions that would warrant re-running
-this research:
+### Step 7: Assess
 
-- Named studies that, if replicated or refuted, would change the
-  assessment
-- Specific events that would invalidate key assumptions
-- Time-based triggers (prediction windows)
-- Data sources that, if updated, would provide newer figures
-- Regulatory or policy changes
-- Named organizations whose positions, if changed, would alter the
-  evidence base
+[Source: ICD 203 calibrated probability scale]
 
-Each trigger must be specific enough that a future agent could check
-whether it has occurred without needing the original research context.
+**With hypotheses** (claim mode or enumerable query):
+
+Apply the probability scale:
+
+- Impossible / Definitively false: 0%
+- Almost no chance / Remote: 01-05%
+- Very unlikely / Highly improbable: 05-20%
+- Unlikely / Improbable: 20-45%
+- Roughly even chance: 45-55%
+- Likely / Probable: 55-80%
+- Very likely / Highly probable: 80-95%
+- Almost certain(ly) / Nearly certain: 95-99%
+- Certain / Definitively true: 100%
+
+0% and 100% are reserved for deterministically verifiable claims only.
+The test: could any new evidence change this answer? If yes, use 1-99%.
+
+For each hypothesis, state the probability and reasoning.
+
+**Without hypotheses** (open-ended query):
+
+State the answer, confidence (High/Medium/Low), reasoning chain, and
+caveats. Do not force into the probability scale.
+
+### Step 8: Identify Gaps
+
+[Source: NAS gap identification + PRISMA absence detection]
+
+Document:
+
+1. Evidence expected but not found
+2. Searches that produced no relevant results
+3. Questions that remain unanswered
+4. How gaps affect assessment confidence
+
+An absence is a finding. State explicitly whether the absence of
+contradictory evidence strengthens or weakens the assessment.
 
 ## Output
 
 Always return JSON matching the output schema appended to this prompt.
 Never return markdown, prose, or formatted text.
 
-The canonical output schema (reports.schema.json) is provided below
+The canonical output schema (synthesis.schema.json) is provided below
 this prompt by the coordinator.
 
 ---
@@ -382,280 +416,259 @@ Your output MUST conform to this JSON Schema. This is the canonical specificatio
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/wphillipmoore/ai-research-methodology/main/src/diogenes/schemas/reports.schema.json",
-  "title": "Research Report",
-  "description": "Final structured report for a single claim or query (Step 10).",
+  "$id": "https://raw.githubusercontent.com/diogenes-project/diogenes/main/src/diogenes/schemas/synthesis.schema.json",
+  "title": "Evidence Synthesis, Assessment, and Gaps",
+  "description": "Combined output of Steps 6 (synthesis), 7 (assessment), and 8 (gaps) for a single claim or query.",
   "type": "object",
   "required": [
     "id",
-    "mode",
-    "input_summary",
-    "assessment_summary",
-    "evidence_summary",
-    "synthesis_summary",
-    "gaps_summary",
-    "audit_summary",
-    "revisit_triggers"
+    "synthesis",
+    "assessment",
+    "gaps"
   ],
   "properties": {
     "id": {
       "type": "string",
       "pattern": "^[CQ][0-9]+$"
     },
-    "mode": {
-      "type": "string",
-      "enum": [
-        "claim",
-        "query"
-      ]
+    "synthesis": {
+      "$ref": "#/$defs/synthesis"
     },
-    "input_summary": {
-      "type": "object",
-      "required": [
-        "original_text",
-        "clarified_text"
-      ],
-      "properties": {
-        "original_text": {
-          "type": "string"
-        },
-        "clarified_text": {
-          "type": "string"
-        },
-        "axioms": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "sub_questions": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Query mode only."
-        }
-      },
-      "additionalProperties": false
+    "assessment": {
+      "$ref": "#/$defs/assessment"
     },
-    "hypotheses_summary": {
-      "type": "object",
-      "properties": {
-        "approach": {
-          "type": "string",
-          "enum": [
-            "hypotheses",
-            "open-ended"
-          ]
-        },
-        "hypotheses": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": [
-              "id",
-              "statement",
-              "status"
-            ],
-            "properties": {
-              "id": {
-                "type": "string"
-              },
-              "statement": {
-                "type": "string"
-              },
-              "status": {
-                "type": "string"
-              }
-            },
-            "additionalProperties": false
-          }
-        },
-        "thematic_summary": {
-          "type": "string",
-          "description": "Open-ended queries: summary of thematic analysis."
-        }
-      },
-      "additionalProperties": false
-    },
-    "assessment_summary": {
-      "type": "object",
-      "required": [
-        "conclusion",
-        "reasoning"
-      ],
-      "properties": {
-        "verdict": {
-          "type": "string",
-          "description": "Claim mode: the claim is [probability term] ([range])."
-        },
-        "answer": {
-          "type": "string",
-          "description": "Query mode: the answer."
-        },
-        "confidence": {
-          "type": "string"
-        },
-        "conclusion": {
-          "type": "string",
-          "description": "One-paragraph conclusion."
-        },
-        "reasoning": {
-          "type": "string",
-          "description": "Reasoning chain from evidence to conclusion."
-        }
-      },
-      "additionalProperties": false
-    },
-    "evidence_summary": {
-      "type": "object",
-      "required": [
-        "sources_count",
-        "key_sources"
-      ],
-      "properties": {
-        "sources_count": {
-          "type": "integer"
-        },
-        "key_sources": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": [
-              "url",
-              "contribution"
-            ],
-            "properties": {
-              "url": {
-                "type": "string"
-              },
-              "title": {
-                "type": "string"
-              },
-              "contribution": {
-                "type": "string"
-              },
-              "reliability": {
-                "type": "string"
-              },
-              "relevance": {
-                "type": "string"
-              }
-            },
-            "additionalProperties": false
-          }
-        }
-      },
-      "additionalProperties": false
-    },
-    "synthesis_summary": {
+    "gaps": {
+      "$ref": "#/$defs/gaps"
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "synthesis": {
       "type": "object",
       "required": [
         "evidence_quality",
-        "source_agreement"
+        "source_agreement",
+        "independence",
+        "outliers"
       ],
       "properties": {
         "evidence_quality": {
-          "type": "string"
+          "$ref": "#/$defs/rated_field"
         },
         "source_agreement": {
-          "type": "string"
+          "$ref": "#/$defs/rated_field"
         },
         "independence": {
-          "type": "string"
-        },
-        "notable_outliers": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": false
-    },
-    "gaps_summary": {
-      "type": "object",
-      "required": [
-        "key_gaps",
-        "impact"
-      ],
-      "properties": {
-        "key_gaps": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "impact": {
-          "type": "string"
-        }
-      },
-      "additionalProperties": false
-    },
-    "audit_summary": {
-      "type": "object",
-      "required": [
-        "overall_rating",
-        "domains"
-      ],
-      "properties": {
-        "overall_rating": {
-          "type": "string",
-          "enum": [
-            "Pass",
-            "Concern",
-            "Fail"
-          ]
-        },
-        "domains": {
           "type": "object",
-          "description": "Per-domain rollup for the self-audit section. Eligibility criteria and search comprehensiveness are enforced deterministically by the pipeline (no LLM judgment captured here); only the cross-source analytical domains appear.",
+          "required": [
+            "assessment",
+            "shared_origins"
+          ],
           "properties": {
-            "evaluation_consistency": {
+            "assessment": {
               "type": "string"
             },
-            "synthesis_fairness": {
-              "type": "string"
-            },
-            "source_verification": {
-              "type": "string"
+            "shared_origins": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
             }
           },
           "additionalProperties": false
         },
-        "discrepancies_found": {
-          "type": "integer"
+        "outliers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "source_url",
+              "divergence",
+              "explanation"
+            ],
+            "properties": {
+              "source_url": {
+                "type": "string"
+              },
+              "divergence": {
+                "type": "string"
+              },
+              "explanation": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "thematic_clusters": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "theme",
+              "sources",
+              "finding"
+            ],
+            "properties": {
+              "theme": {
+                "type": "string"
+              },
+              "sources": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "finding": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "Open-ended queries only: themes that emerged from the evidence."
+        },
+        "convergence_analysis": {
+          "type": "string",
+          "description": "Open-ended queries only: where sources converge and diverge."
+        },
+        "emerging_answer": {
+          "type": "string",
+          "description": "Open-ended queries only: draft finding based on evidence."
         }
       },
       "additionalProperties": false
     },
-    "revisit_triggers": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "required": [
-          "trigger",
-          "type"
-        ],
-        "properties": {
-          "trigger": {
-            "type": "string",
-            "description": "Specific, testable condition."
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "study",
-              "event",
-              "time",
-              "data_update",
-              "policy",
-              "organization"
-            ]
-          }
+    "assessment": {
+      "type": "object",
+      "required": [
+        "approach"
+      ],
+      "properties": {
+        "approach": {
+          "type": "string",
+          "enum": [
+            "probability",
+            "confidence"
+          ]
         },
-        "additionalProperties": false
-      }
+        "hypothesis_ratings": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "hypothesis_id",
+              "probability_term",
+              "probability_range",
+              "reasoning"
+            ],
+            "properties": {
+              "hypothesis_id": {
+                "type": "string"
+              },
+              "probability_term": {
+                "type": "string"
+              },
+              "probability_range": {
+                "type": "string"
+              },
+              "reasoning": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          "description": "For hypotheses approach: probability rating per hypothesis."
+        },
+        "verdict": {
+          "type": "string",
+          "description": "For claims: the claim is [probability term] ([range])."
+        },
+        "answer": {
+          "type": "string",
+          "description": "For open-ended queries: the synthesized answer."
+        },
+        "confidence": {
+          "type": "string",
+          "enum": [
+            "High",
+            "Medium",
+            "Low"
+          ],
+          "description": "For open-ended queries: confidence level."
+        },
+        "reasoning_chain": {
+          "type": "string",
+          "description": "Explicit reasoning from evidence through synthesis to conclusion."
+        },
+        "caveats": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Conditions, qualifications, or limitations."
+        }
+      },
+      "additionalProperties": false
+    },
+    "gaps": {
+      "type": "object",
+      "required": [
+        "expected_not_found",
+        "unanswered_questions",
+        "impact_on_confidence"
+      ],
+      "properties": {
+        "expected_not_found": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Evidence expected but not found."
+        },
+        "no_result_searches": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Searches that produced no relevant results."
+        },
+        "unanswered_questions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Questions that remain unanswered."
+        },
+        "impact_on_confidence": {
+          "type": "string",
+          "description": "How these gaps affect the confidence of the assessment."
+        }
+      },
+      "additionalProperties": false
+    },
+    "rated_field": {
+      "type": "object",
+      "required": [
+        "rating",
+        "rationale"
+      ],
+      "properties": {
+        "rating": {
+          "type": "string",
+          "enum": [
+            "Robust",
+            "Medium",
+            "Limited",
+            "High",
+            "Low"
+          ]
+        },
+        "rationale": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
     }
-  },
-  "additionalProperties": false
+  }
 }
 ```

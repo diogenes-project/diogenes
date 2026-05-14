@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/wphillipmoore/ai-research-methodology/main/src/diogenes/schemas/extracted-claims.schema.json",
+  "$id": "https://raw.githubusercontent.com/diogenes-project/diogenes/main/src/diogenes/schemas/extracted-claims.schema.json",
   "title": "Extracted Claims",
   "description": "Claims extracted from a document for verification. Output of /research extract. Can be used directly as input to /research run or dio run.",
   "type": "object",

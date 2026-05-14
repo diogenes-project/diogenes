@@ -6,7 +6,7 @@ knows about them, chose to accept them for specific reasons, and has a
 direction (or an issue) tracking the strategic fix.
 **Last reviewed:** 2026-04-22 (post-merge pass: TD-003 resolved by #110 /
 PR #119; TD-002 and TD-004 re-verified as still Active).
-**Scope:** `ai-research-methodology` (Diogenes). Not a spec — this file
+**Scope:** `diogenes` (Diogenes). Not a spec — this file
 is bookkeeping, not intent. Specs live under [`specs/`](specs/).
 
 ## How to use this file

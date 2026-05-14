@@ -18,7 +18,7 @@
 
 ## Local validation
 
-- `st-docker-run -- uv run st-validate`
+- `vrg-docker-run -- uv run vrg-validate`
 
 ## Linting policy
 
@@ -37,7 +37,7 @@
 ### Committing changes
 
 ```bash
-st-commit \
+vrg-commit \
   --type TYPE --message TEXT --agent AGENT \
   [--scope SCOPE] [--body BODY]
 ```
@@ -50,7 +50,7 @@ st-commit \
 - `--body` (optional): detailed commit body
 
 The script resolves the correct `Co-Authored-By` identity from
-`standard-tooling.toml` and the git hooks validate the result.
+`vergil-tooling.toml` and the git hooks validate the result.
 
 ### Submitting PRs
 

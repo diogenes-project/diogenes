@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/wphillipmoore/ai-research-methodology/main/src/diogenes/schemas/pipeline-events.schema.json",
+  "$id": "https://raw.githubusercontent.com/diogenes-project/diogenes/main/src/diogenes/schemas/pipeline-events.schema.json",
   "title": "Pipeline Events",
   "description": "Structured event log for a single research run. Captures errors, drops, filtering decisions, and structural gaps across the pipeline. Written by three deterministic layers: MCP-tool-side logging, Python pipeline logging, and post-run reconciliation. The LLM never writes to this file.",
   "type": "object",

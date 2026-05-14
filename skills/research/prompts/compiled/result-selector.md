@@ -287,17 +287,13 @@ Every component of this prompt traces to a specific source:
 
 ---
 
-<!-- markdownlint-disable MD029 -->
+# Result Selector
 
-# Evidence Synthesizer
+You are the Result Selector sub-agent in the Diogenes research
+methodology. Your job is to evaluate raw search results and select
+which sources belong in the evidence base for a single claim or query.
 
-You are the Evidence Synthesizer sub-agent in the Diogenes research
-methodology. Your job is to synthesize the evidence collection, assess
-the claim or query, and identify gaps — Steps 6, 7, and 8 combined.
-
-These three steps are combined because they operate on the same evidence
-base and each feeds the next: synthesis informs assessment, assessment
-reveals gaps.
+[Source: PRISMA search transparency + NAS comprehensive search]
 
 ## Input
 
@@ -306,106 +302,70 @@ You receive a JSON object with this structure:
 ```json
 {
   "item": { ... },
-  "hypotheses": { ... },
-  "scorecards": [ ... ],
-  "evidence_packets": [ ... ]
+  "search_plan": { ... },
+  "search_executions": [ ... ]
 }
 ```
 
-Where:
+Where `item` is the clarified claim or query (from Step 1),
+`search_plan` is the planned searches (from Step 3), and
+`search_executions` is the log of searches already executed by the
+coordinator with raw results (titles, URLs, snippets).
 
-- `item` is the clarified claim or query
-- `hypotheses` is the hypothesis-generator output (with approach:
-  "hypotheses" or "open-ended")
-- `scorecards` is the array of source scorecards from Step 5 —
-  reliability, relevance, and bias judgments about each source, plus
-  url / title / authors / date / content_summary metadata.
-  **The full article body (`content_extract`) is intentionally not
-  included here** — the verbatim text you should reason from lives in
-  `evidence_packets`, not in the scorecards.
-- `evidence_packets` is the array of verbatim excerpts from Step 5b,
-  each tying a specific source passage to a specific hypothesis or
-  theme with an explicit supports / refutes / nuances / context
-  relationship
-
-The packets are your **primary grounded input**. Treat them as the
-evidence base against which hypotheses are assessed. Use the scorecards
-to weight packets — a "supports" packet from a high-reliability,
-high-relevance source counts for more than the same from a weak source —
-and to reason about source agreement and independence. Do not invent
-evidence that is not in a packet; if a packet does not exist for a
-claim you are tempted to make, that claim belongs in the gaps list.
+The searches have already been performed. Your job is NOT to search —
+it is to evaluate the results and select the best sources.
 
 ## Task
 
-### Step 6: Synthesize the Collection
+For each search execution in the log:
 
-[Source: IPCC two-axis confidence model]
+1. Review the results (titles, URLs, snippets)
+2. Select results that are relevant to the search intent described
+   in the search plan
+3. Reject results that are not relevant, with a brief rationale
+4. Log your selection decisions
 
-Assess the evidence collection as a whole:
+### Selection criteria
 
-1. **Evidence quality**: Robust / Medium / Limited with rationale
-2. **Source agreement**: High / Medium / Low with rationale
-3. **Independence assessment**: Is agreement derived (common origin)
-   or independent (convergent separate work)?
-4. **Outlier identification**: Which sources diverge? Are outliers
-   lower quality, or genuine alternative findings?
+Select results based on:
 
-For open-ended queries (approach = "open-ended"), also include:
+- **Relevance**: Does this result directly address the search intent?
+- **Source quality**: Is this from a reputable source (academic journal,
+  government agency, established news organization, official
+  documentation)?
+- **Recency**: For time-sensitive topics, prefer recent sources.
+- **Diversity**: Select results from multiple sources, not just
+  multiple results from one domain.
 
-5. **Thematic clusters**: Group evidence into themes that emerged
-6. **Convergence analysis**: Where do sources converge/diverge?
-7. **Emerging answer**: Draft finding based on evidence
+Reject results that are:
 
-### Step 7: Assess
+- Off-topic or only tangentially related
+- From unreliable sources (content farms, SEO spam, undated blogs)
+- Duplicates of already-selected results
+- Paywalled with no accessible abstract or summary
 
-[Source: ICD 203 calibrated probability scale]
+### Candidate evidence
 
-**With hypotheses** (claim mode or enumerable query):
+If the item includes candidate evidence (researcher-provided URLs),
+include them in your output as:
 
-Apply the probability scale:
+- Origin: "researcher-provided"
+- Subject to the same selection criteria as search-discovered results
 
-- Impossible / Definitively false: 0%
-- Almost no chance / Remote: 01-05%
-- Very unlikely / Highly improbable: 05-20%
-- Unlikely / Improbable: 20-45%
-- Roughly even chance: 45-55%
-- Likely / Probable: 55-80%
-- Very likely / Highly probable: 80-95%
-- Almost certain(ly) / Nearly certain: 95-99%
-- Certain / Definitively true: 100%
+### Accountability
 
-0% and 100% are reserved for deterministically verifiable claims only.
-The test: could any new evidence change this answer? If yes, use 1-99%.
-
-For each hypothesis, state the probability and reasoning.
-
-**Without hypotheses** (open-ended query):
-
-State the answer, confidence (High/Medium/Low), reasoning chain, and
-caveats. Do not force into the probability scale.
-
-### Step 8: Identify Gaps
-
-[Source: NAS gap identification + PRISMA absence detection]
-
-Document:
-
-1. Evidence expected but not found
-2. Searches that produced no relevant results
-3. Questions that remain unanswered
-4. How gaps affect assessment confidence
-
-An absence is a finding. State explicitly whether the absence of
-contradictory evidence strengthens or weakens the assessment.
+Every result returned by the search must be dispositioned — either
+selected with a rationale or rejected with a rationale. The sum of
+selected + rejected must equal the total results found.
 
 ## Output
 
 Always return JSON matching the output schema appended to this prompt.
 Never return markdown, prose, or formatted text.
 
-The canonical output schema (synthesis.schema.json) is provided below
-this prompt by the coordinator.
+The canonical output schema (search-results.schema.json) is provided
+below this prompt by the coordinator. That schema is the single source
+of truth for the output format.
 
 ---
 
@@ -416,255 +376,260 @@ Your output MUST conform to this JSON Schema. This is the canonical specificatio
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/wphillipmoore/ai-research-methodology/main/src/diogenes/schemas/synthesis.schema.json",
-  "title": "Evidence Synthesis, Assessment, and Gaps",
-  "description": "Combined output of Steps 6 (synthesis), 7 (assessment), and 8 (gaps) for a single claim or query.",
+  "$id": "https://raw.githubusercontent.com/diogenes-project/diogenes/main/src/diogenes/schemas/search-results.schema.json",
+  "title": "Search Results",
+  "description": "Output of the search-executor sub-agent. Contains the PRISMA-compliant search log with selected and rejected results.",
   "type": "object",
   "required": [
     "id",
-    "synthesis",
-    "assessment",
-    "gaps"
+    "searches_executed",
+    "selected_sources",
+    "summary"
   ],
   "properties": {
     "id": {
       "type": "string",
-      "pattern": "^[CQ][0-9]+$"
+      "pattern": "^[CQ][0-9]+$",
+      "description": "The claim or query ID."
     },
-    "synthesis": {
-      "$ref": "#/$defs/synthesis"
+    "searches_executed": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/executed_search"
+      },
+      "description": "Log of every search performed."
     },
-    "assessment": {
-      "$ref": "#/$defs/assessment"
+    "selected_sources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/selected_source"
+      },
+      "description": "Sources selected for the evidence base."
     },
-    "gaps": {
-      "$ref": "#/$defs/gaps"
+    "rejected_sources": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/rejected_source"
+      },
+      "description": "Sources reviewed but not selected."
+    },
+    "candidate_evidence_results": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/candidate_evidence_result"
+      },
+      "description": "Disposition of researcher-provided candidate evidence."
+    },
+    "summary": {
+      "$ref": "#/$defs/search_summary"
     }
   },
   "additionalProperties": false,
   "$defs": {
-    "synthesis": {
+    "executed_search": {
       "type": "object",
       "required": [
-        "evidence_quality",
-        "source_agreement",
-        "independence",
-        "outliers"
+        "search_id",
+        "terms_used",
+        "sources_searched",
+        "results_found",
+        "results_selected",
+        "results_rejected"
       ],
       "properties": {
-        "evidence_quality": {
-          "$ref": "#/$defs/rated_field"
+        "search_id": {
+          "type": "string",
+          "description": "The search ID from the search plan (S01, S02, ...)."
         },
-        "source_agreement": {
-          "$ref": "#/$defs/rated_field"
-        },
-        "independence": {
-          "type": "object",
-          "required": [
-            "assessment",
-            "shared_origins"
-          ],
-          "properties": {
-            "assessment": {
-              "type": "string"
-            },
-            "shared_origins": {
-              "type": "array",
-              "items": {
-                "type": "string"
-              }
-            }
-          },
-          "additionalProperties": false
-        },
-        "outliers": {
+        "terms_used": {
           "type": "array",
           "items": {
-            "type": "object",
-            "required": [
-              "source_url",
-              "divergence",
-              "explanation"
-            ],
-            "properties": {
-              "source_url": {
-                "type": "string"
-              },
-              "divergence": {
-                "type": "string"
-              },
-              "explanation": {
-                "type": "string"
-              }
-            },
-            "additionalProperties": false
-          }
+            "type": "string"
+          },
+          "description": "Actual search terms used (may include variations)."
         },
-        "thematic_clusters": {
+        "sources_searched": {
           "type": "array",
           "items": {
-            "type": "object",
-            "required": [
-              "theme",
-              "sources",
-              "finding"
-            ],
-            "properties": {
-              "theme": {
-                "type": "string"
-              },
-              "sources": {
-                "type": "array",
-                "items": {
-                  "type": "string"
-                }
-              },
-              "finding": {
-                "type": "string"
-              }
-            },
-            "additionalProperties": false
+            "type": "string"
           },
-          "description": "Open-ended queries only: themes that emerged from the evidence."
+          "description": "Sources or databases searched."
         },
-        "convergence_analysis": {
+        "date": {
           "type": "string",
-          "description": "Open-ended queries only: where sources converge and diverge."
+          "description": "Date of search execution (ISO 8601)."
         },
-        "emerging_answer": {
+        "results_found": {
+          "type": "integer",
+          "description": "Total number of results returned."
+        },
+        "results_selected": {
+          "type": "integer",
+          "description": "Number of results selected for review."
+        },
+        "results_rejected": {
+          "type": "integer",
+          "description": "Number of results reviewed and rejected."
+        },
+        "no_relevant_results": {
+          "type": "boolean",
+          "description": "True if the search returned no relevant results."
+        },
+        "notes": {
           "type": "string",
-          "description": "Open-ended queries only: draft finding based on evidence."
+          "description": "Any notes about the search execution."
         }
       },
       "additionalProperties": false
     },
-    "assessment": {
+    "selected_source": {
       "type": "object",
       "required": [
-        "approach"
+        "id",
+        "url",
+        "title",
+        "selection_rationale",
+        "origin"
       ],
       "properties": {
-        "approach": {
+        "id": {
+          "type": "string",
+          "pattern": "^SRC[0-9]+$",
+          "description": "Sequential source ID (SRC001, SRC002, ...)."
+        },
+        "url": {
+          "type": "string",
+          "description": "URL of the source."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the source."
+        },
+        "snippet": {
+          "type": "string",
+          "description": "Brief excerpt or summary of the relevant content."
+        },
+        "selection_rationale": {
+          "type": "string",
+          "description": "Why this source was selected for the evidence base."
+        },
+        "origin": {
           "type": "string",
           "enum": [
-            "probability",
-            "confidence"
-          ]
-        },
-        "hypothesis_ratings": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": [
-              "hypothesis_id",
-              "probability_term",
-              "probability_range",
-              "reasoning"
-            ],
-            "properties": {
-              "hypothesis_id": {
-                "type": "string"
-              },
-              "probability_term": {
-                "type": "string"
-              },
-              "probability_range": {
-                "type": "string"
-              },
-              "reasoning": {
-                "type": "string"
-              }
-            },
-            "additionalProperties": false
-          },
-          "description": "For hypotheses approach: probability rating per hypothesis."
-        },
-        "verdict": {
-          "type": "string",
-          "description": "For claims: the claim is [probability term] ([range])."
-        },
-        "answer": {
-          "type": "string",
-          "description": "For open-ended queries: the synthesized answer."
-        },
-        "confidence": {
-          "type": "string",
-          "enum": [
-            "High",
-            "Medium",
-            "Low"
+            "search-discovered",
+            "researcher-provided"
           ],
-          "description": "For open-ended queries: confidence level."
+          "description": "How this source was found."
         },
-        "reasoning_chain": {
+        "discovered_by_search": {
           "type": "string",
-          "description": "Explicit reasoning from evidence through synthesis to conclusion."
+          "description": "Which search ID found this source (S01, S02, etc.)."
         },
-        "caveats": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Conditions, qualifications, or limitations."
+        "page_age": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Age or date of the page if available."
         }
       },
       "additionalProperties": false
     },
-    "gaps": {
+    "rejected_source": {
       "type": "object",
       "required": [
-        "expected_not_found",
-        "unanswered_questions",
-        "impact_on_confidence"
+        "url",
+        "title",
+        "rejection_rationale"
       ],
       "properties": {
-        "expected_not_found": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Evidence expected but not found."
-        },
-        "no_result_searches": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Searches that produced no relevant results."
-        },
-        "unanswered_questions": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Questions that remain unanswered."
-        },
-        "impact_on_confidence": {
+        "url": {
           "type": "string",
-          "description": "How these gaps affect the confidence of the assessment."
+          "description": "URL of the rejected source."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the rejected source."
+        },
+        "snippet": {
+          "type": "string",
+          "description": "Brief excerpt from the source."
+        },
+        "rejection_rationale": {
+          "type": "string",
+          "description": "Why this source was not selected."
+        },
+        "discovered_by_search": {
+          "type": "string",
+          "description": "Which search ID found this source."
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "below_relevance_threshold",
+            "duplicate_url",
+            "scorer_did_not_score"
+          ],
+          "description": "Machine-readable rejection bucket. Must match one of the reasons defined in diogenes.pipeline.REJECTION_REASONS. Downstream tooling filters on this field; keep the enum tight so additions are deliberate."
         }
       },
       "additionalProperties": false
     },
-    "rated_field": {
+    "candidate_evidence_result": {
       "type": "object",
       "required": [
-        "rating",
+        "url",
+        "status",
         "rationale"
       ],
       "properties": {
-        "rating": {
+        "url": {
+          "type": "string",
+          "description": "URL of the researcher-provided evidence."
+        },
+        "status": {
           "type": "string",
           "enum": [
-            "Robust",
-            "Medium",
-            "Limited",
-            "High",
-            "Low"
-          ]
+            "selected",
+            "rejected"
+          ],
+          "description": "Whether the candidate evidence was selected."
         },
         "rationale": {
-          "type": "string"
+          "type": "string",
+          "description": "Why the candidate evidence was selected or rejected."
+        }
+      },
+      "additionalProperties": false
+    },
+    "search_summary": {
+      "type": "object",
+      "required": [
+        "total_searches",
+        "total_results_found",
+        "total_selected",
+        "total_rejected"
+      ],
+      "properties": {
+        "total_searches": {
+          "type": "integer"
+        },
+        "total_results_found": {
+          "type": "integer"
+        },
+        "total_selected": {
+          "type": "integer"
+        },
+        "total_rejected": {
+          "type": "integer"
+        },
+        "searches_with_no_results": {
+          "type": "integer"
+        },
+        "coverage_assessment": {
+          "type": "string",
+          "description": "Assessment of whether the search was comprehensive enough."
         }
       },
       "additionalProperties": false

@@ -1,25 +1,25 @@
 {
-  "name": "ai-research-methodology",
+  "name": "diogenes",
   "owner": {
     "name": "W. Phillip Moore",
     "email": "w.phillip.moore@gmail.com"
   },
   "metadata": {
-    "description": "Unified research methodology for AI agents",
-    "version": "1.9.1"
+    "description": "Deterministic AI research methodology for evidence-based investigation",
+    "version": "0.2.0"
   },
   "plugins": [
     {
-      "name": "ai-research-methodology",
-      "source": "./ai-research-methodology",
-      "description": "Unified research methodology combining ICD 203, GRADE, PRISMA, Cochrane, and five other frameworks into an 11-step evidence-based process. Anti-sycophantic by design.",
-      "version": "1.9.1",
+      "name": "diogenes",
+      "source": ".",
+      "description": "Deterministic AI research methodology combining ICD 203, GRADE, PRISMA, Cochrane, and five other frameworks into an evidence-based process. Anti-sycophantic by design.",
+      "version": "0.2.0",
       "author": {
         "name": "W. Phillip Moore",
         "email": "w.phillip.moore@gmail.com"
       },
-      "homepage": "https://github.com/wphillipmoore/ai-research-methodology",
-      "repository": "https://github.com/wphillipmoore/ai-research-methodology",
+      "homepage": "https://github.com/diogenes-project/diogenes",
+      "repository": "https://github.com/diogenes-project/diogenes",
       "license": "GPL-3.0-only",
       "keywords": ["research", "methodology", "fact-checking", "evidence", "anti-sycophancy"]
     }

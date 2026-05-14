@@ -1,4 +1,4 @@
-# ai-research-methodology Agent Instructions
+# Diogenes Agent Instructions
 
 ## Standards References
 
@@ -8,7 +8,7 @@ when the work requires it — do not attempt to preload and memorize them.
 - **Repository-specific**: `docs/repository-standards.md`
 - **Standards reference**: https://github.com/wphillipmoore/standards-and-conventions
   — historical reference; active standards documentation lives in the
-  standard-tooling repository under `docs/`.
+  vergil-tooling repository under `docs/`.
 
 ## User Overrides (Optional)
 
@@ -18,7 +18,7 @@ briefly and continue.
 
 ## Shared Skills
 
-None. Skills are delivered via the standard-tooling-plugin; see
+None. Skills are delivered via the vergil-claude-plugin; see
 `.claude/settings.json`.
 
 ## Local Overrides

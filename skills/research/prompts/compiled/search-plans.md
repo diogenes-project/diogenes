@@ -287,11 +287,14 @@ Every component of this prompt traces to a specific source:
 
 ---
 
-# Relevance Scorer
+# Search Designer
 
-You are the Relevance Scorer sub-agent in the Diogenes research
-methodology. Your job is to score a small batch of search results for
-relevance to a specific research item.
+You are the Search Designer sub-agent in the Diogenes research
+methodology. Your job is to take a single item's hypotheses (or search
+themes for open-ended queries) along with its vocabulary mappings and
+produce a concrete, executable search plan.
+
+[Source: Chamberlin/Platt strong inference + PRISMA search transparency]
 
 ## Input
 
@@ -299,57 +302,69 @@ You receive a JSON object with this structure:
 
 ```json
 {
-  "item_id": "C001",
-  "clarified_text": "the claim or query being researched",
-  "search_intent": "what this search was looking for",
-  "results": [
-    {
-      "url": "https://...",
-      "title": "...",
-      "snippet": "..."
-    }
-  ]
+  "item": { ... },
+  "hypotheses": { ... }
 }
 ```
 
+Where `item` is the clarified claim or query (with vocabulary mappings
+from Step 1) and `hypotheses` is the hypothesis-generator output for
+that item (from Step 2).
+
 ## Task
 
-For each result in the batch, assign a relevance score and brief
-rationale:
+### With hypotheses (claim mode or enumerable query mode)
 
-- **Score 8-10**: Highly relevant. Directly addresses the research
-  intent. From a reputable source. Should be included in the evidence
-  base.
-- **Score 5-7**: Moderately relevant. Partially addresses the intent,
-  or addresses it indirectly. May be useful as supporting context.
-- **Score 2-4**: Low relevance. Only tangentially related, or from a
-  questionable source.
-- **Score 0-1**: Not relevant. Off-topic, spam, duplicate, or
-  inaccessible.
+For each hypothesis, design searches specifically intended to find
+evidence that would **disprove** it. This includes the researcher's
+preferred hypothesis. The goal is **falsification, not confirmation**.
 
-Scoring criteria:
+For each search:
 
-- **Relevance to intent**: Does the title and snippet indicate this
-  source addresses what the search was looking for?
-- **Source quality**: Is this a reputable source (academic, government,
-  established media, official documentation)?
-- **Specificity**: Does this appear to contain specific evidence or
-  data, or is it generic/superficial?
+1. State which hypothesis this search targets and whether you are
+   looking for supporting or eliminating evidence
+2. Specify the search terms, using vocabulary variants from the
+   clarified item to ensure cross-domain coverage
+3. Specify the sources or databases to search
+4. Describe what a useful result would look like
+5. Describe what absence of results would mean
 
-Keep rationales to one sentence. This is a triage step, not a deep
-evaluation.
+Also use the discriminating questions from the hypothesis output to
+design searches that distinguish between hypotheses.
 
-Return ONLY the url, relevance_score, and rationale for each result.
-Do NOT echo back the title or snippet — the coordinator already has
-those from the raw search results.
+### Without hypotheses (open-ended query mode)
+
+For each search theme, design searches intended to find comprehensive,
+representative evidence. The goal is coverage and diversity of
+perspective. Design searches that would surface:
+
+- The mainstream/consensus view
+- Dissenting or minority views
+- Primary data and original research
+- The boundaries of current knowledge
+
+For each search:
+
+1. State which search theme this addresses
+2. Specify the search terms, using vocabulary variants
+3. Specify the sources or databases to search
+4. Describe the perspective this search is intended to surface
+
+### Search term design
+
+Use the vocabulary mappings from the clarified item to generate search
+terms across domains. A single concept may have different names in
+different fields. Design searches that cover the full vocabulary space,
+not just the primary terms.
 
 ## Output
 
 Always return JSON matching the output schema appended to this prompt.
 Never return markdown, prose, or formatted text.
 
-The canonical output schema (relevance-scores.schema.json) is provided
-below this prompt by the coordinator.
+The canonical output schema (search-plans.schema.json) is provided below
+this prompt by the coordinator. That schema is the single source of
+truth for the output format.
 
 ---
 
@@ -360,51 +375,155 @@ Your output MUST conform to this JSON Schema. This is the canonical specificatio
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://raw.githubusercontent.com/wphillipmoore/ai-research-methodology/main/src/diogenes/schemas/relevance-scores.schema.json",
-  "title": "Relevance Scores",
-  "description": "Output of the relevance-scorer sub-agent. Contains relevance scores for a batch of search results.",
+  "$id": "https://raw.githubusercontent.com/diogenes-project/diogenes/main/src/diogenes/schemas/search-plans.schema.json",
+  "title": "Search Plan",
+  "description": "Output of the search-designer sub-agent for a single claim or query. Contains planned searches with terms, sources, and expected outcomes. When approach=hypotheses, searches target specific hypotheses. When approach=open-ended, searches target themes.",
   "type": "object",
   "required": [
-    "scores"
+    "id",
+    "approach",
+    "searches",
+    "vocabulary_coverage"
   ],
   "properties": {
-    "scores": {
+    "id": {
+      "type": "string",
+      "pattern": "^[CQ][0-9]+$",
+      "description": "The claim or query ID."
+    },
+    "approach": {
+      "type": "string",
+      "enum": [
+        "hypotheses",
+        "open-ended"
+      ]
+    },
+    "searches": {
       "type": "array",
       "minItems": 1,
       "items": {
-        "$ref": "#/$defs/scored_result"
+        "$ref": "#/$defs/search_entry"
       }
+    },
+    "vocabulary_coverage": {
+      "$ref": "#/$defs/vocabulary_coverage"
+    },
+    "meaningful_absences": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/meaningful_absence"
+      },
+      "description": "What absence of evidence would be significant."
     }
   },
   "additionalProperties": false,
   "$defs": {
-    "scored_result": {
+    "search_entry": {
       "type": "object",
       "required": [
-        "url",
-        "relevance_score",
-        "rationale"
+        "id",
+        "terms",
+        "sources"
       ],
       "properties": {
-        "url": {
+        "id": {
           "type": "string",
-          "description": "URL of the search result."
+          "pattern": "^S[0-9]+$",
+          "description": "Sequential search ID (S01, S02, ...)."
         },
-        "title": {
+        "target_hypothesis": {
           "type": "string",
-          "description": "Title of the search result."
+          "description": "Which hypothesis this search targets (e.g., H1, H2). Present when approach=hypotheses."
         },
-        "snippet": {
+        "target_theme": {
           "type": "string",
-          "description": "Snippet from the search result."
+          "description": "Which search theme this addresses (e.g., T1, T2). Present when approach=open-ended."
         },
-        "relevance_score": {
-          "type": "integer",
-          "description": "Relevance score from 0 (not relevant) to 10 (highly relevant)."
-        },
-        "rationale": {
+        "intent": {
           "type": "string",
-          "description": "One-sentence explanation of the score."
+          "enum": [
+            "support",
+            "eliminate",
+            "discriminate"
+          ],
+          "description": "Whether seeking supporting, eliminating, or discriminating evidence. Present when approach=hypotheses."
+        },
+        "perspective": {
+          "type": "string",
+          "description": "Which perspective this search surfaces. Present when approach=open-ended."
+        },
+        "terms": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          },
+          "description": "Search terms to use, including vocabulary variants."
+        },
+        "sources": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string"
+          },
+          "description": "Sources or databases to search."
+        },
+        "useful_result": {
+          "type": "string",
+          "description": "What a useful result from this search would look like."
+        },
+        "absence_meaning": {
+          "type": "string",
+          "description": "What it means if this search returns no relevant results."
+        }
+      },
+      "additionalProperties": false
+    },
+    "vocabulary_coverage": {
+      "type": "object",
+      "required": [
+        "terms_used",
+        "domains_covered"
+      ],
+      "properties": {
+        "terms_used": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "All vocabulary terms used across searches."
+        },
+        "domains_covered": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Domains covered by vocabulary variant searches."
+        },
+        "gaps": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Vocabulary terms from Step 1 not used and why."
+        }
+      },
+      "additionalProperties": false
+    },
+    "meaningful_absence": {
+      "type": "object",
+      "required": [
+        "description",
+        "implication"
+      ],
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "What evidence was looked for."
+        },
+        "implication": {
+          "type": "string",
+          "description": "What it means if this evidence is not found."
         }
       },
       "additionalProperties": false
