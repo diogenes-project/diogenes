@@ -14,7 +14,7 @@ requires it.
   co-authors, linting policy
 - **Standards reference**: https://github.com/wphillipmoore/standards-and-conventions
   — historical reference; active standards documentation lives in the
-  standard-tooling repository under `docs/`.
+  vergil-tooling repository under `docs/`.
 
 Read these documents when:
 - Setting up the development environment
@@ -31,9 +31,9 @@ plugin/skill issue) before writing. See that file for the full
 workflow.
 
 Available skills:
-- `/standard-tooling:memory-init` — set up or update the policy header
+- `/vergil-claude-plugin:memory-init` — set up or update the policy header
   in a project's `MEMORY.md`.
-- `/standard-tooling:memory-audit` — structured collaborative review
+- `/vergil-claude-plugin:memory-audit` — structured collaborative review
   of memory files.
 
 ## Parallel AI agent development
@@ -44,15 +44,15 @@ while preserving shared project memory (which Claude Code derives from the
 session's starting CWD).
 
 **Canonical spec:**
-[`standard-tooling/docs/specs/worktree-convention.md`](https://github.com/wphillipmoore/standard-tooling/blob/develop/docs/specs/worktree-convention.md)
+[`vergil-tooling/docs/specs/worktree-convention.md`](https://github.com/vergil-project/vergil-tooling/blob/develop/docs/specs/worktree-convention.md)
 — full rationale, trust model, failure modes, and memory-path implications.
-The canonical text lives in `standard-tooling`; this section is the local
+The canonical text lives in `vergil-tooling`; this section is the local
 on-ramp.
 
 ### Structure
 
 ```text
-~/dev/github/ai-research-methodology/     ← sessions ALWAYS start here
+~/dev/github/diogenes/     ← sessions ALWAYS start here
   .git/
   CLAUDE.md, src/, docs/, …               ← main worktree (usually `develop`)
   .worktrees/                             ← container for parallel worktrees
@@ -63,7 +63,7 @@ on-ramp.
 ### Rules
 
 1. **Sessions always start at the project root.**
-   `cd ~/dev/github/ai-research-methodology && claude` — never from inside
+   `cd ~/dev/github/diogenes && claude` — never from inside
    `.worktrees/<name>/`. This keeps the memory-path slug stable and shared.
 2. **Each parallel agent is assigned exactly one worktree.** The session
    prompt names the worktree (see Agent prompt contract below).
@@ -86,7 +86,7 @@ placeholders):
 ```text
 You are working on issue #<N>: <issue title>.
 
-Your worktree is: /Users/pmoore/dev/github/ai-research-methodology/.worktrees/issue-<N>-<slug>/
+Your worktree is: /Users/pmoore/dev/github/diogenes/.worktrees/issue-<N>-<slug>/
 Your branch is:   feature/<N>-<slug>
 
 Rules for this session:
@@ -104,13 +104,13 @@ All fields are required.
 
 ## Project Overview
 
-`ai-research-methodology` is a unified research methodology for AI agents
-combining nine intelligence and scientific frameworks into an evidence-based
-process. It is available as a Claude Code plugin, a Python coordinator for
+`diogenes` is a deterministic AI research coordinator combining nine
+intelligence and scientific frameworks into an evidence-based process.
+It is available as a Claude Code plugin, a Python coordinator for
 API-driven research, and a standalone prompt for any AI interface.
 
 The repository contains:
-- **Plugin** (`ai-research-methodology/`): Claude Code plugin with `/research` skill
+- **Plugin** (`skills/`, `standalone/`): Claude Code plugin with `/diogenes:research` skill
 - **Prompts** (`prompts/`): Shared prompt files for sub-agents (used by both plugin and Python)
 - **Schemas** (`docs/design/schemas/`): JSON Schema definitions for data interchange
 - **Coordinator** (`coordinator/`): Python coordinator for API-driven orchestration (WIP)
@@ -122,23 +122,23 @@ The repository contains:
 
 **Standards reference**: https://github.com/wphillipmoore/standards-and-conventions
 — historical reference; active standards documentation lives in the
-standard-tooling repository under `docs/`.
+vergil-tooling repository under `docs/`.
 
 ## Development Commands
 
-### Standard Tooling
+### Vergil Tooling
 
-`standard-tooling` is distributed as a host-level developer tool and
+`vergil-tooling` is distributed as a host-level developer tool and
 provided inside the dev container via the Docker image. It is not a Python
 dev dependency. See
-https://github.com/wphillipmoore/standard-tooling/blob/develop/docs/specs/host-level-tool.md
+https://github.com/vergil-project/vergil-tooling/blob/develop/docs/specs/host-level-tool.md
 for the canonical spec.
 
-One-time host install (puts `st-docker-run`, `st-commit`, `st-submit-pr`,
-`st-prepare-release`, `st-finalize-repo` on PATH):
+One-time host install (puts `vrg-docker-run`, `vrg-commit`, `vrg-submit-pr`,
+`vrg-prepare-release`, `vrg-finalize-repo` on PATH):
 
 ```bash
-uv tool install 'standard-tooling @ git+https://github.com/wphillipmoore/standard-tooling@v1.4'
+uv tool install 'vergil-tooling @ git+https://github.com/vergil-project/vergil-tooling@v2.0'
 ```
 
 Per-clone setup:
@@ -148,8 +148,8 @@ git config core.hooksPath .githooks   # Enable the pre-commit gate
 uv sync --group dev                   # Install runtime + dev deps
 ```
 
-Inside the dev container, `st-validate` is provided by the Docker
-image. Host commands (`st-commit`, `st-submit-pr`, etc.) come from the
+Inside the dev container, `vrg-validate` is provided by the Docker
+image. Host commands (`vrg-commit`, `vrg-submit-pr`, etc.) come from the
 `uv tool install` above.
 
 ### Two-Tier CI Model
@@ -157,25 +157,22 @@ image. Host commands (`st-commit`, `st-submit-pr`, etc.) come from the
 Testing is split across two tiers with increasing scope and cost:
 
 **Tier 1 — Local pre-commit (seconds):** The single entry point
-`st-docker-run -- uv run st-validate` runs everything (lint,
+`vrg-docker-run -- uv run vrg-validate` runs everything (lint,
 typecheck, tests, audit, custom checks) inside one dev container.
 Enforced via the `.githooks` pre-commit gate on every commit.
 
 ```bash
-st-docker-run -- uv run st-validate
+vrg-docker-run -- uv run vrg-validate
 ```
 
-`st-validate` reads `primary_language` from `standard-tooling.toml` and
+`vrg-validate` reads `primary_language` from `vergil.toml` and
 runs checks from its built-in command registry. Repo-specific custom
 validation (version checks) lives in `scripts/bin/validate-custom`,
-which `st-validate` discovers and runs automatically.
+which `vrg-validate` discovers and runs automatically.
 
 **Tier 2 — PR CI (~8-10 min):** Triggers on `pull_request`. Full Python
 matrix (3.12, 3.13, 3.14), security scanners (CodeQL, Trivy, Semgrep),
 standards compliance, and release gates.
-
-Push-CI was retired once `st-validate` reached parity with PR-CI.
-See wphillipmoore/standard-actions#176 for the parity audit and rationale.
 
 ### Testing
 
@@ -212,9 +209,10 @@ uv run mypy src tests
 
 The research methodology is available through two interfaces:
 
-1. **Claude Code Plugin** (`ai-research-methodology/`): Interactive use
-   via `/research run`, `/research fact-check`, etc. The plugin's SKILL.md
-   orchestrates research within a Claude Code session.
+1. **Claude Code Plugin** (`skills/`, `standalone/`): Interactive use
+   via `/diogenes:research run`, `/diogenes:research fact-check`, etc.
+   The plugin's SKILL.md orchestrates research within a Claude Code
+   session.
 
 2. **Python Coordinator** (`coordinator/`): Programmatic use via API.
    The coordinator reads shared prompts, calls AI sub-agents via the

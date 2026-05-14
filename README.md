@@ -1,6 +1,6 @@
-# AI Research Methodology
+# Diogenes
 
-A unified research methodology for AI agents combining nine intelligence and
+A deterministic AI research coordinator combining nine intelligence and
 scientific frameworks into an 11-step evidence-based process. Available as a
 Claude Code plugin or as a standalone prompt for any AI interface (Claude,
 ChatGPT, Gemini, or any capable LLM).
@@ -58,7 +58,7 @@ pair of articles:
   during the investigation. Not tested — they function as constraints that
   frame the research.
 
-All three can be combined in a single research run using `/research run`.
+All three can be combined in a single research run using `/diogenes:research run`.
 
 Research produces complete evidence archives: source scorecards, search logs,
 hypothesis evaluations, collection-level synthesis, gap identification,
@@ -72,17 +72,17 @@ From within a Claude Code session, run these two commands:
 
 ```bash
 # Add the marketplace (one-time setup)
-/plugin marketplace add wphillipmoore/ai-research-methodology
+/plugin marketplace add diogenes-project/diogenes
 
 # Install the plugin
-/plugin install ai-research-methodology@ai-research-methodology
+/plugin install diogenes@diogenes
 ```
 
 The first command registers the marketplace. The second installs the plugin.
-After installation, the `/research` skill is available in all sessions.
+After installation, the `/diogenes:research` skill is available in all sessions.
 
 **Verify the install**: run `/plugin`, go to the **Installed** tab, and
-confirm `ai-research-methodology` appears with the expected version.
+confirm `diogenes` appears with the expected version.
 
 Documentation:
 [Discover and install plugins](https://code.claude.com/docs/en/discover-plugins),
@@ -94,7 +94,7 @@ From within a Claude Code session:
 
 ```bash
 # Refresh the marketplace to pick up new versions
-/plugin marketplace update ai-research-methodology
+/plugin marketplace update diogenes
 
 # Then update the plugin
 # Option A: use the interactive UI
@@ -102,7 +102,7 @@ From within a Claude Code session:
 # Go to Installed tab → select the plugin → Update
 
 # Option B: from the shell (outside a session)
-claude plugin update ai-research-methodology@ai-research-methodology
+claude plugin update diogenes@diogenes
 ```
 
 After updating, run `/reload-plugins` to activate the new version in your
@@ -119,7 +119,7 @@ auto-update for this marketplace.
 ### As a standalone prompt (any AI interface)
 
 Copy the contents of
-[`ai-research-methodology/standalone/research.md`](ai-research-methodology/standalone/research.md)
+[`standalone/research.md`](standalone/research.md)
 and paste it into any AI conversation — Claude, ChatGPT, Gemini, or any
 capable LLM. Then provide your claims, queries, and/or axioms. The prompt
 includes both the research methodology and the output format. It was
@@ -335,7 +335,7 @@ most dangerous default behaviors:
 ## Customization
 
 The output format
-(`ai-research-methodology/skills/research/output-formats/default.md`) can be
+(`skills/research/output-formats/default.md`) can be
 replaced with a custom
 specification. The methodology prompts are independent of the output format —
 you can change how results are presented without changing how research is

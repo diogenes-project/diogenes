@@ -3,7 +3,7 @@
 ## Canonical local validation command
 
 ```bash
-st-docker-run -- uv run st-validate
+vrg-docker-run -- uv run vrg-validate
 ```
 
 This runs all Tier 1 validation checks inside one dev container:
@@ -14,7 +14,7 @@ built-in command registry, then repo-specific custom validation
 
 Anything CI rejects must be rejected locally.
 
-## What st-validate runs (must match CI)
+## What vrg-validate runs (must match CI)
 
 - **Common:** markdownlint, shellcheck, yamllint
 - **Lint:** `ruff check src/ tests/`, `ruff format --check src/ tests/`
@@ -24,7 +24,7 @@ Anything CI rejects must be rejected locally.
   `pip-audit`, `pip-licenses` (centralized allowlist)
 - **Custom:** `scripts/bin/validate-custom` (version validation)
 
-## Manual validation (without standard-tooling)
+## Manual validation (without vergil-tooling)
 
 ```bash
 uv run ruff check
