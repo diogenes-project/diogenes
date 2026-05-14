@@ -1,4 +1,4 @@
-# https://github.com/wphillipmoore/standard-actions/blob/develop/.github/workflows/README.md
+# https://github.com/vergil-project/vergil-actions/blob/develop/.github/workflows/README.md
 name: CI
 
 on:
@@ -21,19 +21,19 @@ concurrency:
 
 jobs:
   audit:
-    uses: wphillipmoore/standard-actions/.github/workflows/ci-audit.yml@v1.5
+    uses: vergil-project/vergil-actions/.github/workflows/ci-audit.yml@v2.0
     with:
       language: python
       versions: '["3.14"]'
 
   quality:
-    uses: wphillipmoore/standard-actions/.github/workflows/ci-quality.yml@v1.5
+    uses: vergil-project/vergil-actions/.github/workflows/ci-quality.yml@v2.0
     with:
       language: python
       versions: '["3.14"]'
 
   security:
-    uses: wphillipmoore/standard-actions/.github/workflows/ci-security.yml@v1.5
+    uses: vergil-project/vergil-actions/.github/workflows/ci-security.yml@v2.0
     with:
       language: python
       run-standards: ${{ inputs.run-release != 'false' }}
@@ -43,13 +43,13 @@ jobs:
       security-events: write
 
   test:
-    uses: wphillipmoore/standard-actions/.github/workflows/ci-test.yml@v1.5
+    uses: vergil-project/vergil-actions/.github/workflows/ci-test.yml@v2.0
     with:
       language: python
       versions: '["3.14"]'
 
   version:
-    uses: wphillipmoore/standard-actions/.github/workflows/ci-version-bump.yml@v1.5
+    uses: vergil-project/vergil-actions/.github/workflows/ci-version-bump.yml@v2.0
     with:
       language: python
       run-release: ${{ inputs.run-release != 'false' }}
