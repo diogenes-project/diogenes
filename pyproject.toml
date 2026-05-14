@@ -47,6 +47,10 @@ dependencies = [
     # multipart parsing). Transitive dep of mcp; safe to remove once mcp
     # bumps its own floor.
     "python-multipart>=0.0.27",
+    # Pin urllib3 >= 2.7.0 for CVE-2026-44431 (header forwarding across
+    # origins) and CVE-2026-44432 (decompression-bomb bypass). Transitive
+    # dep of requests; safe to remove once requests bumps its own floor.
+    "urllib3>=2.7.0",
 ]
 
 [project.urls]
