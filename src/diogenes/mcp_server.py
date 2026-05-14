@@ -10,7 +10,7 @@ Usage with Claude Code:
     {
         "diogenes": {
             "command": "uv",
-            "args": ["--directory", "/path/to/ai-research-methodology", "run", "dio-mcp"],
+            "args": ["--directory", "/path/to/diogenes", "run", "dio-mcp"],
             "env": {}
         }
     }

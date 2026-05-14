@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "diogenes"
-version = "0.1.0"
+version = "0.2.0"
 description = "Diogenes — deterministic AI research coordinator for evidence-based investigation"
 readme = "README.md"
 license = "GPL-3.0-only"
@@ -50,9 +50,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/wphillipmoore/ai-research-methodology"
-Repository = "https://github.com/wphillipmoore/ai-research-methodology"
-Issues = "https://github.com/wphillipmoore/ai-research-methodology/issues"
+Homepage = "https://github.com/diogenes-project/diogenes"
+Repository = "https://github.com/diogenes-project/diogenes"
+Issues = "https://github.com/diogenes-project/diogenes/issues"
 
 [project.scripts]
 dio = "diogenes.cli:main"
