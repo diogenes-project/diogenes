@@ -6,8 +6,7 @@ release-model = "artifact-publishing"
 primary-language = "python"
 
 [project.co-authors]
-claude = "Co-Authored-By: wphillipmoore-claude <255925739+wphillipmoore-claude@users.noreply.github.com>"
-codex = "Co-Authored-By: wphillipmoore-codex <255923655+wphillipmoore-codex@users.noreply.github.com>"
+agent = "Co-Authored-By: wphillipmoore-agent <284101533+wphillipmoore-agent@users.noreply.github.com>"
 
 [ci]
 versions = ["3.14"]
@@ -17,4 +16,4 @@ integration-tests = false
 release = true
 
 [dependencies]
-standard-tooling = "v1.4"
+vergil = "v2.0"
