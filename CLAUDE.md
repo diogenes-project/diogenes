@@ -144,8 +144,9 @@ uv tool install 'vergil-tooling @ git+https://github.com/vergil-project/vergil-t
 Per-clone setup:
 
 ```bash
-git config core.hooksPath .githooks   # Enable the pre-commit gate
 uv sync --group dev                   # Install runtime + dev deps
+# The Claude Code PreToolUse hook guard (.claude/hooks/guard.sh)
+# blocks raw git/gh commands — use vrg-git / vrg-gh wrappers.
 ```
 
 Inside the dev container, `vrg-validate` is provided by the Docker
@@ -159,7 +160,7 @@ Testing is split across two tiers with increasing scope and cost:
 **Tier 1 — Local pre-commit (seconds):** The single entry point
 `vrg-docker-run -- uv run vrg-validate` runs everything (lint,
 typecheck, tests, audit, custom checks) inside one dev container.
-Enforced via the `.githooks` pre-commit gate on every commit.
+Enforced via the Claude Code hook guard on every commit.
 
 ```bash
 vrg-docker-run -- uv run vrg-validate
