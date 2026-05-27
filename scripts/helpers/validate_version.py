@@ -38,7 +38,7 @@ class Version:
 def parse_arguments(argument_list: Sequence[str] | None = None) -> argparse.Namespace:
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
-        description="Validate pymqrest version string rules in CI.",
+        description="Validate version string rules for CI.",
     )
     parser.add_argument(
         "--base-ref",
@@ -55,8 +55,8 @@ def parse_arguments(argument_list: Sequence[str] | None = None) -> argparse.Name
 
 def ensure_project_root() -> None:
     """Fail fast if invoked outside the repository root."""
-    if not Path("pyproject.toml").is_file():
-        message = "Run from the repository root (pyproject.toml missing)."
+    if not Path("VERSION").is_file():
+        message = "Run from the repository root (VERSION file missing)."
         raise SystemExit(message)
 
 
@@ -85,43 +85,50 @@ def resolve_base_reference(base_reference: str) -> str:
 
 def parse_version(version_value: str) -> Version:
     """Parse and validate a version string."""
-    match = VERSION_PATTERN.match(version_value)
+    match = VERSION_PATTERN.match(version_value.strip())
     if not match:
-        message = f"Invalid version format: {version_value}"
+        message = f"Invalid version format: {version_value!r}"
         raise SystemExit(message)
     major, minor, patch = (int(match.group(index)) for index in range(1, 4))
     return Version(major=major, minor=minor, patch=patch)
 
 
-def load_version_from_toml_text(toml_text: str) -> Version:
-    """Load the version from a pyproject.toml text block."""
+def _parse_version_from_toml(toml_text: str) -> Version:
+    """Extract version from pyproject.toml content (legacy fallback)."""
     data = tomllib.loads(toml_text)
-    version_value = None
     project_section = data.get("project")
     if isinstance(project_section, dict):
         version_value = project_section.get("version")
-    if version_value is None:
-        message = "Missing version in pyproject.toml (expected project.version)."
-        raise SystemExit(message)
-    if not isinstance(version_value, str):
-        message = "Version value in pyproject.toml must be a string."
-        raise SystemExit(message)
-    return parse_version(version_value)
+        if isinstance(version_value, str):
+            return parse_version(version_value)
+    message = "Missing version in pyproject.toml (expected project.version)."
+    raise SystemExit(message)
 
 
 def load_version_from_worktree() -> Version:
-    """Load the version from the working tree."""
-    pyproject_text = Path("pyproject.toml").read_text(encoding="utf-8")
-    return load_version_from_toml_text(pyproject_text)
+    """Load the version from the VERSION file in the working tree."""
+    version_text = Path("VERSION").read_text(encoding="utf-8")
+    return parse_version(version_text)
 
 
 def load_version_from_git(reference: str) -> Version:
-    """Load the version from a git reference."""
+    """Load the version from a git reference.
+
+    Tries VERSION first, then falls back to pyproject.toml for older
+    refs that predate the VERSION file.
+    """
     try:
-        pyproject_text = read_command_output(("git", "show", f"{reference}:pyproject.toml"))
+        version_text = read_command_output(("git", "show", f"{reference}:VERSION"))
+        return parse_version(version_text)
+    except subprocess.CalledProcessError:
+        pass
+
+    # Fall back to pyproject.toml for refs that predate the VERSION file.
+    try:
+        toml_text = read_command_output(("git", "show", f"{reference}:pyproject.toml"))
     except subprocess.CalledProcessError as exc:
         raise FileNotFoundError from exc
-    return load_version_from_toml_text(pyproject_text)
+    return _parse_version_from_toml(toml_text)
 
 
 def ensure_version_not_regressed(base_version: Version, head_version: Version, base_reference: str) -> None:
@@ -148,7 +155,7 @@ def main() -> int:
         try:
             base_version = load_version_from_git(resolved_base)
         except FileNotFoundError:
-            print("Base reference missing pyproject.toml; skipping version comparison.")
+            print("Base reference missing version data; skipping version comparison.")
             return 0
         ensure_version_not_regressed(base_version, head_version, resolved_base)
     return 0

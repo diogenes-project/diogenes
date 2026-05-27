@@ -1,3 +1,5 @@
 """Diogenes — deterministic AI research coordinator for evidence-based investigation."""
 
-__version__ = "1.2.0"
+from importlib.metadata import version as _pkg_version
+
+__version__: str = _pkg_version("diogenes")
