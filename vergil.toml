@@ -13,4 +13,3 @@ release = true
 
 [dependencies]
 vergil = "v2.0"
-vergil-tooling = "v2.0"

@@ -31,14 +31,11 @@ command registry. Repo-specific checks live in `scripts/`:
 | scripts/bin/validate-custom | Entry point discovered by vrg-validate |
 | scripts/helpers/validate_version.py | Semantic versioning policy |
 
-### 3. Git hooks
+### 3. Claude Code hook guard
 
-```bash
-git config core.hooksPath .githooks
-```
-
-The repo vendors `.githooks/pre-commit` (the canonical pre-commit gate
-from the host-level-tool spec). See
+The `.claude/hooks/guard.sh` PreToolUse hook blocks raw `git` and
+`gh` commands in AI agent sessions — all operations must go through
+the `vrg-git` / `vrg-gh` wrappers. See
 https://github.com/vergil-project/vergil-tooling/blob/develop/docs/specs/host-level-tool.md.
 
 ### 4. Repository standards docs
