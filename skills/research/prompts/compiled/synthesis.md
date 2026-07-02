@@ -3,7 +3,7 @@
 
 # Common Guidelines — Diogenes Research Methodology
 
-License: GPL-3.0-only
+License: MIT
 Attribution: This prompt was developed independently. The enforcement language
 approach was inspired by Joohn Choe's ICD 203 Intelligence Research Agent
 prompt. The analytical methodology is derived from nine intelligence and

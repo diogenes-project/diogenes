@@ -273,7 +273,7 @@ frameworks as documented in the methodology prompts.
 
 ## License
 
-GPL-3.0. See [LICENSE](LICENSE).
+MIT. See [LICENSE](LICENSE).
 
 ## Author
 
