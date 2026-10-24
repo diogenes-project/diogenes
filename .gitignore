@@ -1,16 +1,52 @@
-# Byte-compiled / optimized / DLL files
+# >>> vergil-managed: base + python (managed by vrg-gitignore-sync; do not edit) >>>
+*.swp
+*.swo
+*~
+*.bak
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+.env
+.env.*
+*.log
+.venv/
+.worktrees/
+.vergil/
+.superpowers/
+.claude/scheduled_tasks.lock
+.claude/settings.local.json
+build/
+dist/
+coverage.xml
+junit.xml
+licenses.json
+docs/site/site/
+docs/site/docs/changelog.md
+docs/site/docs/releases/
+mkdocs.staged.yml
+node_modules/
 __pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+.coverage
+pip-audit.json
+quality-ruff.json
+quality-mypy.xml
+# <<< vergil-managed <<<
+
+# Byte-compiled / optimized / DLL files
 *.py[codz]
 *$py.class
 
 # C extensions
-*.so
 
 # Distribution / packaging
 .Python
-build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
@@ -21,7 +57,6 @@ sdist/
 var/
 wheels/
 share/python-wheels/
-*.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
@@ -40,15 +75,12 @@ pip-delete-this-directory.txt
 htmlcov/
 .tox/
 .nox/
-.coverage
 .coverage.*
 .cache
 nosetests.xml
-coverage.xml
 *.cover
 *.py.cover
 .hypothesis/
-.pytest_cache/
 cover/
 
 # Translations
@@ -56,7 +88,6 @@ cover/
 *.pot
 
 # Django stuff:
-*.log
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
@@ -70,7 +101,6 @@ instance/
 
 # Documentation build output
 docs/_build/
-docs/site/site/
 
 # PyBuilder
 .pybuilder/
@@ -136,7 +166,6 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
 .envrc
 .venv
 env/
@@ -156,7 +185,6 @@ venv.bak/
 /site
 
 # mypy
-.mypy_cache/
 .dmypy.json
 dmypy.json
 
@@ -190,7 +218,6 @@ cython_debug/
 # .vscode/
 
 # Ruff stuff:
-.ruff_cache/
 
 # PyPI configuration file
 .pypirc
@@ -206,7 +233,6 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
-.worktrees/
 
 # Retired hook mechanism (replaced by .claude/hooks/guard.sh)
 .githooks/
