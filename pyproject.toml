@@ -7,7 +7,7 @@ name = "diogenes"
 version = "1.2.2"
 description = "Diogenes — deterministic AI research coordinator for evidence-based investigation"
 readme = "README.md"
-license = "GPL-3.0-only"
+license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "Phillip Moore", email = "w.phillip.moore@gmail.com" }]
 requires-python = ">=3.14,<4.0"
